@@ -90,6 +90,15 @@ run_simulation(unsigned int n_particles,
                float max_initspeed,
                float max_initmass)
 {
+    std::cout << "Running simulation with:"          << std::endl
+              << " n_particles=   " << n_particles   << std::endl
+              << " n_steps=       " << n_steps       << std::endl
+              << " img_width=     " << img_width     << std::endl
+              << " img_height=    " << img_height    << std::endl
+              << " time_step=     " << time_step     << std::endl
+              << " max_initspeed= " << max_initspeed << std::endl
+              << " max_initmass=  " << max_initmass  << std::endl;
+
     float * x    = new float[n_particles];
     float * y    = new float[n_particles];
     float * xnew = new float[n_particles];
