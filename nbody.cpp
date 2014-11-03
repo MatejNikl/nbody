@@ -126,16 +126,17 @@ run_simulation(unsigned int n_particles,
             for (unsigned int j = 0; j < n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
-                float invr = 1.0/sqrt(dx*dx + dy*dy + 10);
-                float f = mass[j]*invr*invr*invr;
-                ax += f*dx; /* accumulate the acceleration from gravitational attraction */
-                ay += f*dy;
+                float invr = 1.0f / sqrt(dx * dx + dy * dy + 1e-03f);
+                float coef = mass[j] * invr * invr * invr;
+
+                ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
+                ay += coef * dy;
             }
 
-            xnew[i] = x[i] + time_step*xvel[i] + 0.5f*time_step*time_step*ax; /* update position of particle "i" */
-            ynew[i] = y[i] + time_step*yvel[i] + 0.5f*time_step*time_step*ay;
-            xvel[i] += time_step*ax; /* update velocity of particle "i" */
-            yvel[i] += time_step*ay;
+            xnew[i] = x[i] + xvel[i] * time_step + 0.5f * ax * time_step * time_step; /* update position of particle "i" */
+            ynew[i] = y[i] + yvel[i] * time_step + 0.5f * ay * time_step * time_step;
+            xvel[i] += ax * time_step; /* update velocity of particle "i" */
+            yvel[i] += ay * time_step;
 
             if (xnew[i] < 0) {
                 xnew[i] = -xnew[i];
