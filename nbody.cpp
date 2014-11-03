@@ -15,7 +15,8 @@ run_simulation(unsigned int n_particles,
                unsigned int img_height,
                float time_step,
                float max_initspeed,
-               float max_initmass);
+               float max_initmass,
+               float max_initcharge);
 
 void
 save_image(float * x,
@@ -38,11 +39,12 @@ int main(int argc, char *argv[])
 {
     unsigned int n_particles;
     unsigned int n_steps;
-    unsigned int img_width     = 500;
-    unsigned int img_height    = 500;
-    float        time_step     = 1.0f;
-    float        max_initspeed = 30.0f;
-    float        max_initmass  = 1000.0f;
+    unsigned int img_width      = 500;
+    unsigned int img_height     = 500;
+    float        time_step      = 1.0f;
+    float        max_initspeed  = 30.0f;
+    float        max_initmass   = 1000.0f;
+    float        max_initcharge = 1000.0f;
 
     srand(time(NULL));
 
@@ -60,15 +62,17 @@ int main(int argc, char *argv[])
 
     // Optional arguments
     if(0 < argc)
-        img_width     = std::atoi(*argv++), --argc;
+        img_width      = std::atoi(*argv++), --argc;
     if(0 < argc)
-        img_height    = std::atoi(*argv++), --argc;
+        img_height     = std::atoi(*argv++), --argc;
     if(0 < argc)
-        time_step     = std::atof(*argv++), --argc;
+        time_step      = std::atof(*argv++), --argc;
     if(0 < argc)
-        max_initspeed = std::atof(*argv++), --argc;
+        max_initspeed  = std::atof(*argv++), --argc;
     if(0 < argc)
-        max_initmass  = std::atof(*argv++), --argc;
+        max_initmass   = std::atof(*argv++), --argc;
+    if(0 < argc)
+        max_initcharge = std::atof(*argv++), --argc;
 
     run_simulation(n_particles,
                    n_steps,
@@ -76,7 +80,8 @@ int main(int argc, char *argv[])
                    img_height,
                    time_step,
                    max_initspeed,
-                   max_initmass);
+                   max_initmass,
+                   max_initcharge);
 
     return EXIT_SUCCESS;
 }
@@ -88,16 +93,18 @@ run_simulation(unsigned int n_particles,
                unsigned int img_height,
                float time_step,
                float max_initspeed,
-               float max_initmass)
+               float max_initmass,
+               float max_initcharge)
 {
-    std::cout << "Running simulation with:"          << std::endl
-              << " n_particles=   " << n_particles   << std::endl
-              << " n_steps=       " << n_steps       << std::endl
-              << " img_width=     " << img_width     << std::endl
-              << " img_height=    " << img_height    << std::endl
-              << " time_step=     " << time_step     << std::endl
-              << " max_initspeed= " << max_initspeed << std::endl
-              << " max_initmass=  " << max_initmass  << std::endl;
+    std::cout << "Running simulation with:"            << std::endl
+              << " n_particles=    " << n_particles    << std::endl
+              << " n_steps=        " << n_steps        << std::endl
+              << " img_width=      " << img_width      << std::endl
+              << " img_height=     " << img_height     << std::endl
+              << " time_step=      " << time_step      << std::endl
+              << " max_initspeed=  " << max_initspeed  << std::endl
+              << " max_initmass=   " << max_initmass   << std::endl
+              << " max_initcharge= " << max_initcharge << std::endl;
 
     float * x  = new float[n_particles];
     float * y  = new float[n_particles];
@@ -106,12 +113,14 @@ run_simulation(unsigned int n_particles,
     float * vx = new float[n_particles];
     float * vy = new float[n_particles];
     float * m  = new float[n_particles];
+    float * q  = new float[n_particles];
 
-    init_array(x,  0,              img_width,     n_particles);
-    init_array(y,  0,              img_height,    n_particles);
-    init_array(vx, -max_initspeed, max_initspeed, n_particles);
-    init_array(vy, -max_initspeed, max_initspeed, n_particles);
-    init_array(m,  0,              max_initmass,  n_particles);
+    init_array(x,               0,      img_width, n_particles);
+    init_array(y,               0,     img_height, n_particles);
+    init_array(vx, -max_initspeed,  max_initspeed, n_particles);
+    init_array(vy, -max_initspeed,  max_initspeed, n_particles);
+    init_array(m,               0,   max_initmass, n_particles);
+    init_array(q, -max_initcharge, max_initcharge, n_particles);
 
     vx[0] = vy[0] = 0;
     x[0] =  img_width / 2;
@@ -126,8 +135,8 @@ run_simulation(unsigned int n_particles,
             for (unsigned int j = 0; j < n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
-                float invr = 1.0f / sqrt(dx * dx + dy * dy + 1e-03f);
-                float coef = m[j] * invr * invr * invr;
+                float invr = 1.0f / sqrt(dx * dx + dy * dy + 1.0f);
+                float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
 
                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
                 ay += coef * dy;
@@ -229,6 +238,6 @@ void
 print_help(const char * runcmd)
 {
     std::cout << "Usage: " << runcmd
-              << " #particles #steps [width height time_step max_initspeed max_initmass]" << std::endl
-              << " (default width=500 height=500 time_step=1 max_initspeed=30 max_initmass=1000)" << std::endl;
+              << " #particles #steps [width height time_step max_initspeed max_initmass max_initcharge]" << std::endl
+              << " (default width=500 height=500 time_step=1 max_initspeed=30 max_initmass=1000 max_initcharge=1000)" << std::endl;
 }
