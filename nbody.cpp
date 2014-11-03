@@ -11,11 +11,12 @@
 void
 run_simulation(unsigned int n_particles,
                unsigned int n_steps,
-               float        time_step,
-               unsigned int max_initspeed,
-               unsigned int max_initmass,
                unsigned int img_width,
-               unsigned int img_height);
+               unsigned int img_height,
+               float time_step,
+               float max_initspeed,
+               float max_initmass);
+
 void
 save_image(float * x,
            float * y,
@@ -37,11 +38,11 @@ int main(int argc, char *argv[])
 {
     unsigned int n_particles;
     unsigned int n_steps;
-    float        time_step     = 1;
-    unsigned int max_initspeed = 30;
-    unsigned int max_initmass  = 1000;
     unsigned int img_width     = 500;
     unsigned int img_height    = 500;
+    float        time_step     = 1.0f;
+    float        max_initspeed = 30.0f;
+    float        max_initmass  = 1000.0f;
 
     if(argc < 3) {
         print_help(*argv);
@@ -57,23 +58,23 @@ int main(int argc, char *argv[])
 
     // Optional arguments
     if(0 < argc)
-        time_step     = std::atof(*argv++), --argc;
-    if(0 < argc)
-        max_initspeed = std::atoi(*argv++), --argc;
-    if(0 < argc)
-        max_initmass  = std::atoi(*argv++), --argc;
-    if(0 < argc)
         img_width     = std::atoi(*argv++), --argc;
     if(0 < argc)
         img_height    = std::atoi(*argv++), --argc;
+    if(0 < argc)
+        time_step     = std::atof(*argv++), --argc;
+    if(0 < argc)
+        max_initspeed = std::atof(*argv++), --argc;
+    if(0 < argc)
+        max_initmass  = std::atof(*argv++), --argc;
 
     run_simulation(n_particles,
                    n_steps,
+                   img_width,
+                   img_height,
                    time_step,
                    max_initspeed,
-                   max_initmass,
-                   img_width,
-                   img_height);
+                   max_initmass);
 
     return EXIT_SUCCESS;
 }
@@ -81,15 +82,15 @@ int main(int argc, char *argv[])
 void
 run_simulation(unsigned int n_particles,
                unsigned int n_steps,
-               float        time_step,
-               unsigned int max_initspeed,
-               unsigned int max_initmass,
                unsigned int img_width,
-               unsigned int img_height)
+               unsigned int img_height,
+               float time_step,
+               float max_initspeed,
+               float max_initmass)
 {
     float * x    = new float[n_particles];
-    float * xnew = new float[n_particles];
     float * y    = new float[n_particles];
+    float * xnew = new float[n_particles];
     float * ynew = new float[n_particles];
     float * xvel = new float[n_particles];
     float * yvel = new float[n_particles];
@@ -97,11 +98,11 @@ run_simulation(unsigned int n_particles,
 
     srand(time(NULL));
 
-    init_array(x,    0,                        img_width,     n_particles);
-    init_array(y,    0,                        img_height,    n_particles);
-    init_array(xvel, -((float) max_initspeed), max_initspeed, n_particles);
-    init_array(yvel, -((float) max_initspeed), max_initspeed, n_particles);
-    init_array(mass, 0,                        max_initmass,  n_particles);
+    init_array(x,    0,              img_width,     n_particles);
+    init_array(y,    0,              img_height,    n_particles);
+    init_array(xvel, -max_initspeed, max_initspeed, n_particles);
+    init_array(yvel, -max_initspeed, max_initspeed, n_particles);
+    init_array(mass, 0,              max_initmass,  n_particles);
 
     xvel[0] = yvel[0] = 0;
     x[0] =  img_width / 2;
@@ -218,6 +219,6 @@ void
 print_help(const char * runcmd)
 {
     std::cout << "Usage: " << runcmd
-              << " #particles #steps [time_step max_initspeed max_initmass width height]" << std::endl
-              << " (default time_step=1 max_initspeed=30 max_initmass=1000 width=500 height=500)" << std::endl;
+              << " #particles #steps [width height time_step max_initspeed max_initmass]" << std::endl
+              << " (default width=500 height=500 time_step=1 max_initspeed=30 max_initmass=1000)" << std::endl;
 }
