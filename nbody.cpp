@@ -10,28 +10,27 @@
 
 void
 run_simulation(unsigned int n_particles,
-                unsigned int n_steps,
-                float        time_step,
-                unsigned int max_initspeed,
-                unsigned int img_width,
-                unsigned int img_height);
+               unsigned int n_steps,
+               float        time_step,
+               unsigned int max_initspeed,
+               unsigned int img_width,
+               unsigned int img_height);
 void
 save_image(float * x,
-            float * y,
-            unsigned int n_particles,
-            unsigned int width,
-            unsigned int height,
-            unsigned int seq);
+           float * y,
+           unsigned int n_particles,
+           unsigned int width,
+           unsigned int height,
+           unsigned int seq);
 
 void
 init_array(float * arr,
-            float min,
-            float max,
-            unsigned int n);
+           float min,
+           float max,
+           unsigned int n);
 
 void
 print_help(const char * runcmd);
-
 
 int main(int argc, char *argv[])
 {
@@ -66,22 +65,22 @@ int main(int argc, char *argv[])
 #endif
 
     run_simulation(n_particles,
-                    n_steps,
-                    time_step,
-                    max_initspeed,
-                    img_width,
-                    img_height);
+                   n_steps,
+                   time_step,
+                   max_initspeed,
+                   img_width,
+                   img_height);
 
     return 0;
 }
 
 void
 run_simulation(unsigned int n_particles,
-                unsigned int n_steps,
-                float        time_step,
-                unsigned int max_initspeed,
-                unsigned int img_width,
-                unsigned int img_height)
+               unsigned int n_steps,
+               float        time_step,
+               unsigned int max_initspeed,
+               unsigned int img_width,
+               unsigned int img_height)
 {
     float * x    = new float[n_particles];
     float * xnew = new float[n_particles];
@@ -153,7 +152,6 @@ run_simulation(unsigned int n_particles,
     std::cout << std::endl;
 #endif
 
-
     delete [] x;
     delete [] xnew;
     delete [] y;
@@ -165,11 +163,11 @@ run_simulation(unsigned int n_particles,
 
 void
 save_image(float * x,
-            float * y,
-            unsigned int n_particles,
-            unsigned int width,
-            unsigned int height,
-            unsigned int seq)
+           float * y,
+           unsigned int n_particles,
+           unsigned int width,
+           unsigned int height,
+           unsigned int seq)
 {
     static const unsigned int pen_width = 1;
     static bitmap_image image(width + 2 * pen_width, height + 2 * pen_width);
@@ -193,9 +191,9 @@ save_image(float * x,
 
 void
 init_array(float * arr,
-            float min,
-            float max,
-            unsigned int n)
+           float min,
+           float max,
+           unsigned int n)
 {
     if (min < max) {
         float norm = RAND_MAX / (max - min);
