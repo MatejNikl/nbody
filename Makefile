@@ -1,7 +1,6 @@
-
 CXX      := g++
 BINS     := nbody
-CXXFLAGS := -O3 -g3
+CXXFLAGS := -O3 -g3 -ansi -pedantic -Wall -Wextra
 
 all: $(BINS)
 
