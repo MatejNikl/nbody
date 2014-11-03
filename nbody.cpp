@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
     float        max_initspeed = 30.0f;
     float        max_initmass  = 1000.0f;
 
+    srand(time(NULL));
+
     if(argc < 3) {
         print_help(*argv);
         return EXIT_FAILURE;
@@ -95,8 +97,6 @@ run_simulation(unsigned int n_particles,
     float * xvel = new float[n_particles];
     float * yvel = new float[n_particles];
     float * mass = new float[n_particles];
-
-    srand(time(NULL));
 
     init_array(x,    0,              img_width,     n_particles);
     init_array(y,    0,              img_height,    n_particles);
