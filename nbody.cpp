@@ -137,20 +137,20 @@ run_simulation(unsigned int n_particles,
             xvel[i] += time_step*ax; /* update velocity of particle "i" */
             yvel[i] += time_step*ay;
 
-            if (xnew[i] < 0.0f) {
-                xnew[i] = 0.0f;
-                xvel[i] = std::fabs(xvel[i]) / 2;
+            if (xnew[i] < 0) {
+                xnew[i] = -xnew[i];
+                xvel[i] = 0.5f * std::fabs(xvel[i]);
             } else if (xnew[i] > img_width) {
-                xnew[i] = img_width;
-                xvel[i] = -std::fabs(xvel[i]) / 2;
+                xnew[i] = 2 * img_width - xnew[i];
+                xvel[i] = -0.5f * std::fabs(xvel[i]);
             }
 
-            if (ynew[i] < 0.0f) {
-                ynew[i] = 0.0f;
-                yvel[i] = std::fabs(yvel[i]) / 2;
+            if (ynew[i] < 0) {
+                ynew[i] = -ynew[i];
+                yvel[i] = 0.5f * std::fabs(yvel[i]);
             } else if (ynew[i] > img_height) {
-                ynew[i] = img_height;
-                yvel[i] = -std::fabs(yvel[i]) / 2;
+                ynew[i] = 2 * img_height - ynew[i];
+                yvel[i] = -0.5f * std::fabs(yvel[i]);
             }
         }
 
