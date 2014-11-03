@@ -13,6 +13,7 @@ run_simulation(unsigned int n_particles,
                unsigned int n_steps,
                float        time_step,
                unsigned int max_initspeed,
+               unsigned int max_initmass,
                unsigned int img_width,
                unsigned int img_height);
 void
@@ -38,6 +39,7 @@ int main(int argc, char *argv[])
     unsigned int n_steps;
     float        time_step     = 1;
     unsigned int max_initspeed = 30;
+    unsigned int max_initmass  = 1000;
     unsigned int img_width     = 500;
     unsigned int img_height    = 500;
 
@@ -59,6 +61,8 @@ int main(int argc, char *argv[])
     if(0 < argc)
         max_initspeed = std::atoi(*argv++), --argc;
     if(0 < argc)
+        max_initmass  = std::atoi(*argv++), --argc;
+    if(0 < argc)
         img_width     = std::atoi(*argv++), --argc;
     if(0 < argc)
         img_height    = std::atoi(*argv++), --argc;
@@ -67,6 +71,7 @@ int main(int argc, char *argv[])
                    n_steps,
                    time_step,
                    max_initspeed,
+                   max_initmass,
                    img_width,
                    img_height);
 
@@ -78,6 +83,7 @@ run_simulation(unsigned int n_particles,
                unsigned int n_steps,
                float        time_step,
                unsigned int max_initspeed,
+               unsigned int max_initmass,
                unsigned int img_width,
                unsigned int img_height)
 {
@@ -95,7 +101,7 @@ run_simulation(unsigned int n_particles,
     init_array(y,    0,                        img_height,    n_particles);
     init_array(xvel, -((float) max_initspeed), max_initspeed, n_particles);
     init_array(yvel, -((float) max_initspeed), max_initspeed, n_particles);
-    init_array(mass, 0,                        1000,          n_particles);
+    init_array(mass, 0,                        max_initmass,  n_particles);
 
     xvel[0] = yvel[0] = 0;
     x[0] =  img_width / 2;
@@ -212,6 +218,6 @@ void
 print_help(const char * runcmd)
 {
     std::cout << "Usage: " << runcmd
-              << " #particles #steps [time_step max_initspeed width height]" << std::endl
-              << " (default time_step=1 max_initspeed=30 width=500 height=500)" << std::endl;
+              << " #particles #steps [time_step max_initspeed max_initmass width height]" << std::endl
+              << " (default time_step=1 max_initspeed=30 max_initmass=1000 width=500 height=500)" << std::endl;
 }
