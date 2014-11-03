@@ -99,24 +99,24 @@ run_simulation(unsigned int n_particles,
               << " max_initspeed= " << max_initspeed << std::endl
               << " max_initmass=  " << max_initmass  << std::endl;
 
-    float * x    = new float[n_particles];
-    float * y    = new float[n_particles];
-    float * xnew = new float[n_particles];
-    float * ynew = new float[n_particles];
-    float * xvel = new float[n_particles];
-    float * yvel = new float[n_particles];
-    float * mass = new float[n_particles];
+    float * x  = new float[n_particles];
+    float * y  = new float[n_particles];
+    float * xn = new float[n_particles];
+    float * yn = new float[n_particles];
+    float * vx = new float[n_particles];
+    float * vy = new float[n_particles];
+    float * m  = new float[n_particles];
 
-    init_array(x,    0,              img_width,     n_particles);
-    init_array(y,    0,              img_height,    n_particles);
-    init_array(xvel, -max_initspeed, max_initspeed, n_particles);
-    init_array(yvel, -max_initspeed, max_initspeed, n_particles);
-    init_array(mass, 0,              max_initmass,  n_particles);
+    init_array(x,  0,              img_width,     n_particles);
+    init_array(y,  0,              img_height,    n_particles);
+    init_array(vx, -max_initspeed, max_initspeed, n_particles);
+    init_array(vy, -max_initspeed, max_initspeed, n_particles);
+    init_array(m,  0,              max_initmass,  n_particles);
 
-    xvel[0] = yvel[0] = 0;
+    vx[0] = vy[0] = 0;
     x[0] =  img_width / 2;
     y[0] = img_height / 2;
-    mass[0] = -1e6;
+    m[0] = -1e6;
 
     for (unsigned int s = 0; s < n_steps; ++s) {
         for (unsigned int i = 0; i < n_particles; ++i) {
@@ -127,36 +127,36 @@ run_simulation(unsigned int n_particles,
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
                 float invr = 1.0f / sqrt(dx * dx + dy * dy + 1e-03f);
-                float coef = mass[j] * invr * invr * invr;
+                float coef = m[j] * invr * invr * invr;
 
                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
                 ay += coef * dy;
             }
 
-            xnew[i] = x[i] + xvel[i] * time_step + 0.5f * ax * time_step * time_step; /* update position of particle "i" */
-            ynew[i] = y[i] + yvel[i] * time_step + 0.5f * ay * time_step * time_step;
-            xvel[i] += ax * time_step; /* update velocity of particle "i" */
-            yvel[i] += ay * time_step;
+            xn[i] = x[i] + vx[i] * time_step + 0.5f * ax * time_step * time_step; /* update position of particle "i" */
+            yn[i] = y[i] + vy[i] * time_step + 0.5f * ay * time_step * time_step;
+            vx[i] += ax * time_step; /* update velocity of particle "i" */
+            vy[i] += ay * time_step;
 
-            if (xnew[i] < 0) {
-                xnew[i] = -xnew[i];
-                xvel[i] = 0.5f * std::fabs(xvel[i]);
-            } else if (xnew[i] > img_width) {
-                xnew[i] = 2 * img_width - xnew[i];
-                xvel[i] = -0.5f * std::fabs(xvel[i]);
+            if (xn[i] < 0) {
+                xn[i] = -xn[i];
+                vx[i] = 0.5f * std::fabs(vx[i]);
+            } else if (xn[i] > img_width) {
+                xn[i] = 2 * img_width - xn[i];
+                vx[i] = -0.5f * std::fabs(vx[i]);
             }
 
-            if (ynew[i] < 0) {
-                ynew[i] = -ynew[i];
-                yvel[i] = 0.5f * std::fabs(yvel[i]);
-            } else if (ynew[i] > img_height) {
-                ynew[i] = 2 * img_height - ynew[i];
-                yvel[i] = -0.5f * std::fabs(yvel[i]);
+            if (yn[i] < 0) {
+                yn[i] = -yn[i];
+                vy[i] = 0.5f * std::fabs(vy[i]);
+            } else if (yn[i] > img_height) {
+                yn[i] = 2 * img_height - yn[i];
+                vy[i] = -0.5f * std::fabs(vy[i]);
             }
         }
 
-        std::swap(x, xnew);
-        std::swap(y, ynew);
+        std::swap(x, xn);
+        std::swap(y, yn);
 
 #ifdef VISUAL
         std::cout << '\r' << "step: " << s + 1 << '/' << n_steps << std::flush;
@@ -169,12 +169,12 @@ run_simulation(unsigned int n_particles,
 #endif
 
     delete [] x;
-    delete [] xnew;
     delete [] y;
-    delete [] ynew;
-    delete [] xvel;
-    delete [] yvel;
-    delete [] mass;
+    delete [] xn;
+    delete [] yn;
+    delete [] vx;
+    delete [] vy;
+    delete [] m;
 }
 
 void
