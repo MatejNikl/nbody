@@ -194,14 +194,17 @@ init_array(float * arr,
            float max,
            unsigned int n)
 {
-    if (min < max) {
-        float norm = RAND_MAX / (max - min);
+    if (min == max) {
+        std::fill(arr, arr + n, min);
+    } else {
+        if(max < min)
+            std::swap(min, max);
+
+        const float norm = (max - min) / RAND_MAX;
 
         for (unsigned int i = 0; i < n; ++i) {
-            arr[i] = (rand() / norm) + min;
+            arr[i] = min + norm * rand();
         }
-    } else {
-        std::fill(arr, arr + n, min);
     }
 }
 
