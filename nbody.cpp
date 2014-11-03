@@ -41,28 +41,27 @@ int main(int argc, char *argv[])
     unsigned int img_width     = 500;
     unsigned int img_height    = 500;
 
-
-#ifndef VISUAL
-    if (argc < 3) {
-        print_help(argv[0]);
-        return 1;
+    if(argc < 3) {
+        print_help(*argv);
+        return EXIT_FAILURE;
     }
 
-    n_particles = atoi(argv[1]);
-    n_steps     = atoi(argv[2]);
-#else
-    if (argc < 7) {
-        print_help(argv[0]);
-        return 1;
-    }
+    // Skip execution command
+    --argc, ++argv;
 
-    n_particles   = std::atoi(argv[1]);
-    n_steps       = std::atoi(argv[2]);
-    time_step     = std::atof(argv[3]);
-    max_initspeed = std::atoi(argv[4]);
-    img_width     = std::atoi(argv[5]);
-    img_height    = std::atoi(argv[6]);
-#endif
+    // Required arguments
+    n_particles = std::atoi(*argv++), --argc;
+    n_steps     = std::atoi(*argv++), --argc;
+
+    // Optional arguments
+    if(0 < argc)
+        time_step     = std::atof(*argv++), --argc;
+    if(0 < argc)
+        max_initspeed = std::atoi(*argv++), --argc;
+    if(0 < argc)
+        img_width     = std::atoi(*argv++), --argc;
+    if(0 < argc)
+        img_height    = std::atoi(*argv++), --argc;
 
     run_simulation(n_particles,
                    n_steps,
@@ -71,7 +70,7 @@ int main(int argc, char *argv[])
                    img_width,
                    img_height);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void
@@ -209,10 +208,7 @@ init_array(float * arr,
 void
 print_help(const char * runcmd)
 {
-    std::cout << "Usage: " << runcmd << " #particles #steps";
-#ifdef VISUAL
-    std::cout << " time_step max_initspeed width height";
-#endif
-    std::cout << std::endl;
+    std::cout << "Usage: " << runcmd
+              << " #particles #steps [time_step max_initspeed width height]" << std::endl
+              << " (default time_step=1 max_initspeed=30 width=500 height=500)" << std::endl;
 }
-
