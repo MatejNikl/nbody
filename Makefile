@@ -1,7 +1,7 @@
 
 CXX      := g++
 BINS     := nbody
-CXXFLAGS := -O0 -g3
+CXXFLAGS := -O3 -g3
 
 all: $(BINS)
 
@@ -13,6 +13,6 @@ $(BINS): $$@.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 clean:
-	rm $(BINS)
+	rm $(BINS) output*.bmp
 
 .PHONY: clean
