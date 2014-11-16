@@ -14,6 +14,7 @@ struct NBodySettings
     unsigned int n_steps;
     unsigned int img_width;
     unsigned int img_height;
+    unsigned int plot_every;
     float        time_step;
     float        max_initspeed;
     float        max_initmass;
@@ -27,6 +28,7 @@ struct NBodySettings
       n_steps(1000),
       img_width(500),
       img_height(500),
+      plot_every(10),
       time_step(1.0f),
       max_initspeed(30.0f),
       max_initmass(1000.0f),
@@ -62,7 +64,8 @@ print_help(const char * runcmnd);
 
 
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
     NBodySettings s;
 
@@ -85,6 +88,8 @@ int main(int argc, char *argv[])
         s.img_width      = std::atoi(*argv++), --argc;
     if(0 < argc)
         s.img_height     = std::atoi(*argv++), --argc;
+    if(0 < argc)
+        s.plot_every     = std::atoi(*argv++), --argc;
     if(0 < argc)
         s.time_step      = std::atof(*argv++), --argc;
     if(0 < argc)
@@ -143,7 +148,7 @@ run_simulation(const NBodySettings & s)
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
-                float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 1.0f);
+                float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
                 float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
 
                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
@@ -176,8 +181,14 @@ run_simulation(const NBodySettings & s)
         std::swap(y, yn);
 
 #ifdef VISUAL
-        std::cout << '\r' << "step: " << step + 1 << '/' << s.n_steps << std::flush;
-        save_image(x, y, m, q, s, step);
+        std::cout << '\r'
+                  << "step: " << 1 + step << '/' << s.n_steps << ' '
+                  << "plotted: " << std::ceil(((float) step) / s.plot_every) << '/' << std::ceil(((float) s.n_steps) / s.plot_every)
+                  << std::flush;
+
+        if (step % s.plot_every == 0) {
+            save_image(x, y, m, q, s, step / s.plot_every);
+        }
 #endif
     }
 
@@ -286,7 +297,7 @@ void
 print_help(const char * runcmnd)
 {
     std::cout << "Usage: " << runcmnd
-              << " #particles #steps [width height time_step min_initspeed min_initmass min_initcharge min_initspeed min_initmass min_initcharge]" << std::endl
+              << " #particles #steps [width height plot_every time_step min_initspeed min_initmass min_initcharge min_initspeed min_initmass min_initcharge]" << std::endl
               << " defaults:" << std::endl
               << NBodySettings(); //print default values
 }
