@@ -12,6 +12,6 @@ $(BINS): $$@.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 clean:
-	rm $(BINS) output*.bmp
+	-rm $(BINS) output*.bmp
 
 .PHONY: clean
