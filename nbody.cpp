@@ -8,22 +8,39 @@
 
 #include "bitmap_image.hpp"
 
+struct NBodySettings
+{
+    unsigned int n_particles;
+    unsigned int n_steps;
+    unsigned int img_width;
+    unsigned int img_height;
+    float        time_step;
+    float        max_initspeed;
+    float        max_initmass;
+    float        max_initcharge;
+
+    NBodySettings()
+    : n_particles(1000u),
+      n_steps(1000),
+      img_width(500),
+      img_height(500),
+      time_step(1.0f),
+      max_initspeed(30.0f),
+      max_initmass(1000.0f),
+      max_initcharge(1000.0f)
+    {
+    }
+
+    friend std::ostream & operator<<(std::ostream & os, const NBodySettings & s);
+};
+
 void
-run_simulation(unsigned int n_particles,
-               unsigned int n_steps,
-               unsigned int img_width,
-               unsigned int img_height,
-               float time_step,
-               float max_initspeed,
-               float max_initmass,
-               float max_initcharge);
+run_simulation(const NBodySettings & s);
 
 void
 save_image(float * x,
            float * y,
-           unsigned int n_particles,
-           unsigned int width,
-           unsigned int height,
+           const NBodySettings & s,
            unsigned int seq);
 
 void
@@ -33,18 +50,13 @@ init_array(float * arr,
            unsigned int n);
 
 void
-print_help(const char * runcmd);
+print_help(const char * runcmnd);
+
+
 
 int main(int argc, char *argv[])
 {
-    unsigned int n_particles;
-    unsigned int n_steps;
-    unsigned int img_width      = 500;
-    unsigned int img_height     = 500;
-    float        time_step      = 1.0f;
-    float        max_initspeed  = 30.0f;
-    float        max_initmass   = 1000.0f;
-    float        max_initcharge = 1000.0f;
+    NBodySettings s;
 
     srand(time(NULL));
 
@@ -57,88 +69,65 @@ int main(int argc, char *argv[])
     --argc, ++argv;
 
     // Required arguments
-    n_particles = std::atoi(*argv++), --argc;
-    n_steps     = std::atoi(*argv++), --argc;
+    s.n_particles = std::atoi(*argv++), --argc;
+    s.n_steps     = std::atoi(*argv++), --argc;
 
     // Optional arguments
     if(0 < argc)
-        img_width      = std::atoi(*argv++), --argc;
+        s.img_width      = std::atoi(*argv++), --argc;
     if(0 < argc)
-        img_height     = std::atoi(*argv++), --argc;
+        s.img_height     = std::atoi(*argv++), --argc;
     if(0 < argc)
-        time_step      = std::atof(*argv++), --argc;
+        s.time_step      = std::atof(*argv++), --argc;
     if(0 < argc)
-        max_initspeed  = std::atof(*argv++), --argc;
+        s.max_initspeed  = std::atof(*argv++), --argc;
     if(0 < argc)
-        max_initmass   = std::atof(*argv++), --argc;
+        s.max_initmass   = std::atof(*argv++), --argc;
     if(0 < argc)
-        max_initcharge = std::atof(*argv++), --argc;
+        s.max_initcharge = std::atof(*argv++), --argc;
 
-    run_simulation(n_particles,
-                   n_steps,
-                   img_width,
-                   img_height,
-                   time_step,
-                   max_initspeed,
-                   max_initmass,
-                   max_initcharge);
+    run_simulation(s);
 
     return EXIT_SUCCESS;
 }
 
 void
-run_simulation(unsigned int n_particles,
-               unsigned int n_steps,
-               unsigned int img_width,
-               unsigned int img_height,
-               float dt,
-               float max_initspeed,
-               float max_initmass,
-               float max_initcharge)
+run_simulation(const NBodySettings & s)
 {
-    std::cout << "Running simulation with:"            << std::endl
-              << " n_particles=    " << n_particles    << std::endl
-              << " n_steps=        " << n_steps        << std::endl
-              << " img_width=      " << img_width      << std::endl
-              << " img_height=     " << img_height     << std::endl
-              << " dt=             " << dt             << std::endl
-              << " max_initspeed=  " << max_initspeed  << std::endl
-              << " max_initmass=   " << max_initmass   << std::endl
-              << " max_initcharge= " << max_initcharge << std::endl;
-#ifndef VISUAL
-    std::cout << "(non-visual mode)" << std::endl;
-#endif
+    std::cout << "Running simulation with:" << std::endl;
+    std::cout << s;
 
-    float * x  = new float[n_particles];
-    float * y  = new float[n_particles];
-    float * xn = new float[n_particles];
-    float * yn = new float[n_particles];
-    float * vx = new float[n_particles];
-    float * vy = new float[n_particles];
-    float * m  = new float[n_particles];
-    float * q  = new float[n_particles];
+    float * x  = new float[s.n_particles];
+    float * y  = new float[s.n_particles];
+    float * xn = new float[s.n_particles];
+    float * yn = new float[s.n_particles];
+    float * vx = new float[s.n_particles];
+    float * vy = new float[s.n_particles];
+    float * m  = new float[s.n_particles];
+    float * q  = new float[s.n_particles];
 
-    init_array(x,               0,      img_width, n_particles);
-    init_array(y,               0,     img_height, n_particles);
-    init_array(vx, -max_initspeed,  max_initspeed, n_particles);
-    init_array(vy, -max_initspeed,  max_initspeed, n_particles);
-    init_array(m,               0,   max_initmass, n_particles);
-    init_array(q, -max_initcharge, max_initcharge, n_particles);
+    init_array(x,                 0,      s.img_width, s.n_particles);
+    init_array(y,                 0,     s.img_height, s.n_particles);
+    init_array(vx, -s.max_initspeed,  s.max_initspeed, s.n_particles);
+    init_array(vy, -s.max_initspeed,  s.max_initspeed, s.n_particles);
+    init_array(m,                 0,   s.max_initmass, s.n_particles);
+    init_array(q, -s.max_initcharge, s.max_initcharge, s.n_particles);
 
     vx[0] = vy[0] = 0;
-    x[0] =  img_width / 2;
-    y[0] = img_height / 2;
+    x[0] =  s.img_width / 2;
+    y[0] = s.img_height / 2;
     m[0] = -1e6;
 
-    for (unsigned int s = 0; s < n_steps; ++s) {
-        for (unsigned int i = 0; i < n_particles; ++i) {
+    float dt = s.time_step;
+    for (unsigned int step = 0; step < s.n_steps; ++step) {
+        for (unsigned int i = 0; i < s.n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
 
-            for (unsigned int j = 0; j < n_particles; ++j) {
+            for (unsigned int j = 0; j < s.n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
-                float invr = 1.0f / sqrt(dx * dx + dy * dy + 1.0f);
+                float invr = 1.0f / sqrtf(dx * dx + dy * dy + 1.0f);
                 float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
 
                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
@@ -153,16 +142,16 @@ run_simulation(unsigned int n_particles,
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
-            } else if (xn[i] > img_width) {
-                xn[i] = 2 * img_width - xn[i];
+            } else if (xn[i] > s.img_width) {
+                xn[i] = 2 * s.img_width - xn[i];
                 vx[i] = -0.5f * std::fabs(vx[i]);
             }
 
             if (yn[i] < 0) {
                 yn[i] = -yn[i];
                 vy[i] = 0.5f * std::fabs(vy[i]);
-            } else if (yn[i] > img_height) {
-                yn[i] = 2 * img_height - yn[i];
+            } else if (yn[i] > s.img_height) {
+                yn[i] = 2 * s.img_height - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
         }
@@ -171,8 +160,8 @@ run_simulation(unsigned int n_particles,
         std::swap(y, yn);
 
 #ifdef VISUAL
-        std::cout << '\r' << "step: " << s + 1 << '/' << n_steps << std::flush;
-        save_image(x, y, n_particles, img_width, img_height, s);
+        std::cout << '\r' << "step: " << step + 1 << '/' << s.n_steps << std::flush;
+        save_image(x, y, s, step);
 #endif
     }
 
@@ -235,10 +224,27 @@ init_array(float * arr,
     }
 }
 
-void
-print_help(const char * runcmd)
+std::ostream &
+operator<<(std::ostream & os, const NBodySettings & s)
 {
-    std::cout << "Usage: " << runcmd
+    os << " n_particles=    " << s.n_particles    << std::endl
+       << " n_steps=        " << s.n_steps        << std::endl
+       << " img_width=      " << s.img_width      << std::endl
+       << " img_height=     " << s.img_height     << std::endl
+       << " time_step=      " << s.time_step      << std::endl
+       << " max_initspeed=  " << s.max_initspeed  << std::endl
+       << " max_initmass=   " << s.max_initmass   << std::endl
+       << " max_initcharge= " << s.max_initcharge << std::endl;
+#ifndef VISUAL
+    os << "(non-visual mode)" << std::endl;
+#endif
+    return os;
+}
+
+void
+print_help(const char * runcmnd)
+{
+    std::cout << "Usage: " << runcmnd
               << " #particles #steps [width height time_step max_initspeed max_initmass max_initcharge]" << std::endl
               << " (default width=500 height=500 time_step=1 max_initspeed=30 max_initmass=1000 max_initcharge=1000)" << std::endl;
 }
