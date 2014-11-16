@@ -18,6 +18,9 @@ struct NBodySettings
     float        max_initspeed;
     float        max_initmass;
     float        max_initcharge;
+    float        min_initspeed;
+    float        min_initmass;
+    float        min_initcharge;
 
     NBodySettings()
     : n_particles(1000u),
@@ -27,7 +30,10 @@ struct NBodySettings
       time_step(1.0f),
       max_initspeed(30.0f),
       max_initmass(1000.0f),
-      max_initcharge(1000.0f)
+      max_initcharge(1000.0f),
+      min_initspeed(0.0f),
+      min_initmass(0.0f),
+      min_initcharge(-1000.0f)
     {
     }
 
@@ -85,6 +91,12 @@ int main(int argc, char *argv[])
         s.max_initmass   = std::atof(*argv++), --argc;
     if(0 < argc)
         s.max_initcharge = std::atof(*argv++), --argc;
+    if(0 < argc)
+        s.min_initspeed  = std::atof(*argv++), --argc;
+    if(0 < argc)
+        s.min_initmass   = std::atof(*argv++), --argc;
+    if(0 < argc)
+        s.min_initcharge = std::atof(*argv++), --argc;
 
     run_simulation(s);
 
@@ -106,12 +118,12 @@ run_simulation(const NBodySettings & s)
     float * m  = new float[s.n_particles];
     float * q  = new float[s.n_particles];
 
-    init_array(x,                 0,      s.img_width, s.n_particles);
-    init_array(y,                 0,     s.img_height, s.n_particles);
-    init_array(vx, -s.max_initspeed,  s.max_initspeed, s.n_particles);
-    init_array(vy, -s.max_initspeed,  s.max_initspeed, s.n_particles);
-    init_array(m,                 0,   s.max_initmass, s.n_particles);
-    init_array(q, -s.max_initcharge, s.max_initcharge, s.n_particles);
+    init_array(x,                0,      s.img_width, s.n_particles);
+    init_array(y,                0,     s.img_height, s.n_particles);
+    init_array(vx, s.min_initspeed,  s.max_initspeed, s.n_particles);
+    init_array(vy, s.min_initspeed,  s.max_initspeed, s.n_particles);
+    init_array(m,   s.min_initmass,   s.max_initmass, s.n_particles);
+    init_array(q, s.min_initcharge, s.max_initcharge, s.n_particles);
 
     vx[0] = vy[0] = 0;
     x[0] =  s.img_width / 2;
@@ -181,20 +193,18 @@ run_simulation(const NBodySettings & s)
 void
 save_image(float * x,
            float * y,
-           unsigned int n_particles,
-           unsigned int width,
-           unsigned int height,
+           const NBodySettings & s,
            unsigned int seq)
 {
-    static bitmap_image image(width, height);
+    static bitmap_image image(s.img_width, s.img_height);
     static image_drawer drawer(image);
 
     image.set_all_channels(0);
     drawer.pen_color(255, 255, 255);
 
-    for (unsigned int p = 0; p < n_particles; ++p) {
-        if (0 <= x[p] && x[p] <= width
-         && 0 <= y[p] && y[p] <= height) {
+    for (unsigned int p = 0; p < s.n_particles; ++p) {
+        if (0 <= x[p] && x[p] <= s.img_width
+         && 0 <= y[p] && y[p] <= s.img_height) {
             drawer.plot_pixel(x[p], y[p]);
         }
     }
@@ -234,7 +244,10 @@ operator<<(std::ostream & os, const NBodySettings & s)
        << " time_step=      " << s.time_step      << std::endl
        << " max_initspeed=  " << s.max_initspeed  << std::endl
        << " max_initmass=   " << s.max_initmass   << std::endl
-       << " max_initcharge= " << s.max_initcharge << std::endl;
+       << " max_initcharge= " << s.max_initcharge << std::endl
+       << " min_initspeed=  " << s.min_initspeed  << std::endl
+       << " min_initmass=   " << s.min_initmass   << std::endl
+       << " min_initcharge= " << s.min_initcharge << std::endl;
 #ifndef VISUAL
     os << "(non-visual mode)" << std::endl;
 #endif
@@ -245,6 +258,7 @@ void
 print_help(const char * runcmnd)
 {
     std::cout << "Usage: " << runcmnd
-              << " #particles #steps [width height time_step max_initspeed max_initmass max_initcharge]" << std::endl
-              << " (default width=500 height=500 time_step=1 max_initspeed=30 max_initmass=1000 max_initcharge=1000)" << std::endl;
+              << " #particles #steps [width height time_step min_initspeed min_initmass min_initcharge min_initspeed min_initmass min_initcharge]" << std::endl
+              << " defaults:" << std::endl
+              << NBodySettings(); //print default values
 }
