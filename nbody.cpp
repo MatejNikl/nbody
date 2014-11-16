@@ -46,6 +46,8 @@ run_simulation(const NBodySettings & s);
 void
 save_image(float * x,
            float * y,
+           float * m,
+           float * q,
            const NBodySettings & s,
            unsigned int seq);
 
@@ -125,10 +127,12 @@ run_simulation(const NBodySettings & s)
     init_array(m,   s.min_initmass,   s.max_initmass, s.n_particles);
     init_array(q, s.min_initcharge, s.max_initcharge, s.n_particles);
 
+    /*
     vx[0] = vy[0] = 0;
     x[0] =  s.img_width / 2;
     y[0] = s.img_height / 2;
     m[0] = -1e6;
+    */
 
     float dt = s.time_step;
     for (unsigned int step = 0; step < s.n_steps; ++step) {
@@ -173,7 +177,7 @@ run_simulation(const NBodySettings & s)
 
 #ifdef VISUAL
         std::cout << '\r' << "step: " << step + 1 << '/' << s.n_steps << std::flush;
-        save_image(x, y, s, step);
+        save_image(x, y, m, q, s, step);
 #endif
     }
 
@@ -193,19 +197,43 @@ run_simulation(const NBodySettings & s)
 void
 save_image(float * x,
            float * y,
+           float * m,
+           float * q,
            const NBodySettings & s,
            unsigned int seq)
 {
-    static bitmap_image image(s.img_width, s.img_height);
-    static image_drawer drawer(image);
+    static const int pen_width = 2;
+    bitmap_image image(s.img_width + pen_width * 2, s.img_height + pen_width * 2);
+    image_drawer drawer(image);
+
+    static float color_base = 100.0f;
+    float max_val = std::max(std::max(std::fabs(s.max_initcharge),
+                                      std::fabs(s.min_initcharge)),
+                             s.max_initmass);
+    float norm = (255.0f - color_base) / max_val;
 
     image.set_all_channels(0);
-    drawer.pen_color(255, 255, 255);
+    drawer.pen_width(pen_width);
 
     for (unsigned int p = 0; p < s.n_particles; ++p) {
+
         if (0 <= x[p] && x[p] <= s.img_width
          && 0 <= y[p] && y[p] <= s.img_height) {
-            drawer.plot_pixel(x[p], y[p]);
+            if (q[p] > 0.0f) {
+                drawer.pen_color(roundf(color_base + q[p] * norm),
+                                 roundf(color_base + m[p] * norm),
+                                 0);
+            } else if (q[p] < 0.0f) {
+                drawer.pen_color(0,
+                                 roundf(color_base + m[p] * norm),
+                                 roundf(color_base - q[p] * norm));
+            } else {
+                drawer.pen_color(0,
+                                 roundf(color_base + m[p] * norm),
+                                 0);
+            }
+
+            drawer.plot_pen_pixel(x[p] + pen_width, y[p] + pen_width);
         }
     }
 
