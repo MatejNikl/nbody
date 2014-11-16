@@ -91,7 +91,7 @@ run_simulation(unsigned int n_particles,
                unsigned int n_steps,
                unsigned int img_width,
                unsigned int img_height,
-               float time_step,
+               float dt,
                float max_initspeed,
                float max_initmass,
                float max_initcharge)
@@ -101,10 +101,13 @@ run_simulation(unsigned int n_particles,
               << " n_steps=        " << n_steps        << std::endl
               << " img_width=      " << img_width      << std::endl
               << " img_height=     " << img_height     << std::endl
-              << " time_step=      " << time_step      << std::endl
+              << " dt=             " << dt             << std::endl
               << " max_initspeed=  " << max_initspeed  << std::endl
               << " max_initmass=   " << max_initmass   << std::endl
               << " max_initcharge= " << max_initcharge << std::endl;
+#ifndef VISUAL
+    std::cout << "(non-visual mode)" << std::endl;
+#endif
 
     float * x  = new float[n_particles];
     float * y  = new float[n_particles];
@@ -142,10 +145,10 @@ run_simulation(unsigned int n_particles,
                 ay += coef * dy;
             }
 
-            xn[i] = x[i] + vx[i] * time_step + 0.5f * ax * time_step * time_step; /* update position of particle "i" */
-            yn[i] = y[i] + vy[i] * time_step + 0.5f * ay * time_step * time_step;
-            vx[i] += ax * time_step; /* update velocity of particle "i" */
-            vy[i] += ay * time_step;
+            xn[i] = x[i] + vx[i] * dt + 0.5f * ax * dt * dt; /* update position of particle "i" */
+            yn[i] = y[i] + vy[i] * dt + 0.5f * ay * dt * dt;
+            vx[i] += ax * dt; /* update velocity of particle "i" */
+            vy[i] += ay * dt;
 
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
@@ -194,18 +197,16 @@ save_image(float * x,
            unsigned int height,
            unsigned int seq)
 {
-    static const unsigned int pen_width = 1;
-    static bitmap_image image(width + 2 * pen_width, height + 2 * pen_width);
+    static bitmap_image image(width, height);
     static image_drawer drawer(image);
 
     image.set_all_channels(0);
-    drawer.pen_width(pen_width);
     drawer.pen_color(255, 255, 255);
 
     for (unsigned int p = 0; p < n_particles; ++p) {
         if (0 <= x[p] && x[p] <= width
          && 0 <= y[p] && y[p] <= height) {
-            drawer.plot_pen_pixel(x[p] + pen_width, y[p] + pen_width);
+            drawer.plot_pixel(x[p], y[p]);
         }
     }
 
