@@ -127,7 +127,7 @@ run_simulation(const NBodySettings & s)
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
-                float invr = 1.0f / sqrtf(dx * dx + dy * dy + 1.0f);
+                float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 1.0f);
                 float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
 
                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
