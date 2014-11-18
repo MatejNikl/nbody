@@ -4,7 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <limits>
+#include <chrono>
 
 #include "bitmap_image.hpp"
 
@@ -61,8 +61,6 @@ init_array(float * arr,
 
 void
 print_help(const char * runcmnd);
-
-
 
 int
 main(int argc, char *argv[])
@@ -139,6 +137,9 @@ run_simulation(const NBodySettings & s)
     m[0] = -1e6;
     */
 
+    auto begin = std::chrono::steady_clock::now();
+
+
     float dt = s.time_step;
     for (unsigned int step = 0; step < s.n_steps; ++step) {
         for (unsigned int i = 0; i < s.n_particles; ++i) {
@@ -197,6 +198,12 @@ run_simulation(const NBodySettings & s)
 #ifdef VISUAL
     std::cout << std::endl;
 #endif
+
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    std::cout << "Elapsed time: "
+              << std::fixed << std::setprecision(3) << elapsed / 1000.0
+              << " s" << std::endl;
 
     delete [] x;
     delete [] y;
