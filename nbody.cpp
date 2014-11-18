@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <csignal>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -54,6 +55,9 @@ save_image(float * x,
            unsigned int seq);
 
 void
+signal_handler(int signum);
+
+void
 init_array(float * arr,
            float min,
            float max,
@@ -62,12 +66,15 @@ init_array(float * arr,
 void
 print_help(const char * runcmnd);
 
+volatile bool g_interrupted = false;
+
 int
 main(int argc, char *argv[])
 {
     NBodySettings s;
 
     srand(time(NULL));
+    signal(SIGINT, signal_handler);
 
     if(argc < 3) {
         print_help(*argv);
@@ -141,7 +148,9 @@ run_simulation(const NBodySettings & s)
 
 
     float dt = s.time_step;
-    for (unsigned int step = 0; step < s.n_steps; ++step) {
+    unsigned int step;
+
+    for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
         for (unsigned int i = 0; i < s.n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
@@ -197,6 +206,8 @@ run_simulation(const NBodySettings & s)
 
 #ifdef VISUAL
     std::cout << std::endl;
+#else
+    std::cout << "Processed: " << step << " steps" << std::endl;
 #endif
 
     auto end = std::chrono::steady_clock::now();
@@ -256,6 +267,12 @@ save_image(float * x,
     std::ostringstream oss;
     oss << "output_" << std::setfill('0') << std::setw(5) << seq << ".bmp";
     image.save_image(oss.str());
+}
+
+void
+signal_handler(int signum)
+{
+    g_interrupted = signum; //to silence (set but) not used warning
 }
 
 void
