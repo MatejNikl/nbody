@@ -146,31 +146,67 @@ run_simulation(const NBodySettings & s)
 
     auto begin = std::chrono::steady_clock::now();
 
-
-    float dt = s.time_step;
-    unsigned int step;
-
+    /*
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
         for (unsigned int i = 0; i < s.n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
-
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 float dx = x[j] - x[i];
                 float dy = y[j] - y[i];
                 float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
                 float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
-
-                ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
                 ay += coef * dy;
             }
-
-            xn[i] = x[i] + vx[i] * dt + 0.5f * ax * dt * dt; /* update position of particle "i" */
+            xn[i] = x[i] + vx[i] * dt + 0.5f * ax * dt * dt;
             yn[i] = y[i] + vy[i] * dt + 0.5f * ay * dt * dt;
-            vx[i] += ax * dt; /* update velocity of particle "i" */
+            vx[i] += ax * dt;
             vy[i] += ay * dt;
+        }
+        std::swap(x, xn);
+        std::swap(y, yn);
+    }
+    */
+    const unsigned int TILED_STEP = 20;
+    float dt = s.time_step;
+    unsigned int step;
+
+    for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
+        for (unsigned int i = 0; i < s.n_particles; ++i) {
+            xn[i] = x[i] + vx[i] * dt;
+            yn[i] = y[i] + vy[i] * dt;
+        }
+
+        for (unsigned int i = 0; i < s.n_particles; i += TILED_STEP) {
+            unsigned int i1_end = std::min(i + TILED_STEP, s.n_particles);
+
+            for (unsigned int j = 0; j < s.n_particles; j += TILED_STEP) {
+                unsigned int j1_end = std::min(j + TILED_STEP, s.n_particles);
+
+                for (unsigned int i1 = i; i1 < i1_end; ++i1) {
+                    float ax = 0.0f;
+                    float ay = 0.0f;
+                    for (unsigned int j1 = j; j1 < j1_end; ++j1) {
+                        float dx = x[j1] - x[i1];
+                        float dy = y[j1] - y[i1];
+                        float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
+                        float coef = (m[j1] - q[i1] * q[j1] / m[i1]) * invr * invr * invr;
+
+                        ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
+                        ay += coef * dy;
+                    }
+
+                    xn[i1] += 0.5f * ax * dt * dt; /* update position of particle "i" */
+                    yn[i1] += 0.5f * ay * dt * dt;
+                    vx[i1] += ax * dt; /* update velocity of particle "i" */
+                    vy[i1] += ay * dt;
+                }
+            }
+        }
 
 #ifdef VISUAL
+        for (unsigned int i = 0; i < s.n_particles; ++i) {
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
@@ -186,9 +222,8 @@ run_simulation(const NBodySettings & s)
                 yn[i] = 2 * s.img_height - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
-#endif
         }
-
+#endif
         std::swap(x, xn);
         std::swap(y, yn);
 
