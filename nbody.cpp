@@ -250,17 +250,17 @@ save_image(float * x,
         if (0 <= x[p] && x[p] <= s.img_width
          && 0 <= y[p] && y[p] <= s.img_height) {
             if (q[p] >= 0.0f) {
-                drawer.pen_color(std::roundf(q[p] * norm),
-                                 std::roundf(m[p] * norm),
+                drawer.pen_color(std::round(q[p] * norm),
+                                 std::round(m[p] * norm),
                                  0);
             } else if (q[p] < 0.0f) {
                 drawer.pen_color(0,
-                                 std::roundf(m[p] * norm),
-                                 std::roundf(q[p] * norm));
+                                 std::round(m[p] * norm),
+                                 std::round(q[p] * norm));
             }
 
-            drawer.plot_pen_pixel(std::roundf(x[p] + pen_width),
-                                  std::roundf(y[p] + pen_width));
+            drawer.plot_pen_pixel(std::round(x[p] + pen_width),
+                                  std::round(y[p] + pen_width));
         }
     }
 
