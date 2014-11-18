@@ -127,6 +127,8 @@ run_simulation(const NBodySettings & s)
     float * yn = new float[s.n_particles];
     float * vx = new float[s.n_particles];
     float * vy = new float[s.n_particles];
+    float * ax = new float[s.n_particles];
+    float * ay = new float[s.n_particles];
     float * m  = new float[s.n_particles];
     float * q  = new float[s.n_particles];
 
@@ -169,41 +171,74 @@ run_simulation(const NBodySettings & s)
     }
     */
     const unsigned int TILED_STEP = 20;
-    float dt = s.time_step;
+    const float dt = s.time_step;
     unsigned int step;
 
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-        for (unsigned int i = 0; i < s.n_particles; ++i) {
-            xn[i] = x[i] + vx[i] * dt;
-            yn[i] = y[i] + vy[i] * dt;
-        }
+        std::fill( ax, ax + s.n_particles, 0.0f );
+        std::fill( ay, ay + s.n_particles, 0.0f );
 
         for (unsigned int i = 0; i < s.n_particles; i += TILED_STEP) {
-            unsigned int i1_end = std::min(i + TILED_STEP, s.n_particles);
+            const unsigned int i1_end = std::min(i + TILED_STEP, s.n_particles);
 
-            for (unsigned int j = 0; j < s.n_particles; j += TILED_STEP) {
-                unsigned int j1_end = std::min(j + TILED_STEP, s.n_particles);
+            for (unsigned int j = i + 1; j < s.n_particles; j += TILED_STEP) {
+                const unsigned int j1_end = std::min(j + TILED_STEP, s.n_particles);
 
                 for (unsigned int i1 = i; i1 < i1_end; ++i1) {
-                    float ax = 0.0f;
-                    float ay = 0.0f;
                     for (unsigned int j1 = j; j1 < j1_end; ++j1) {
                         float dx = x[j1] - x[i1];
                         float dy = y[j1] - y[i1];
+
                         float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
-                        float coef = (m[j1] - q[i1] * q[j1] / m[i1]) * invr * invr * invr;
+                        float invr3 = invr * invr * invr;
 
-                        ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
-                        ay += coef * dy;
+                        float q_ij = q[i1] * q[j1];
+                        float coef_i = (m[j1] - q_ij / m[i1]) * invr3;
+                        float coef_j = (m[i1] - q_ij / m[j1]) * invr3;
+
+                        ax[i1] += coef_i * dx;
+                        ay[i1] += coef_i * dy;
+                        ax[j1] -= coef_j * dx;
+                        ay[j1] -= coef_j * dy;
                     }
-
-                    xn[i1] += 0.5f * ax * dt * dt; /* update position of particle "i" */
-                    yn[i1] += 0.5f * ay * dt * dt;
-                    vx[i1] += ax * dt; /* update velocity of particle "i" */
-                    vy[i1] += ay * dt;
                 }
             }
         }
+
+        for(unsigned int i = 0; i < s.n_particles; ++i ) {
+            xn[i] = x[i] + vx[i] * dt + 0.5f * ax[i] * dt * dt;
+            yn[i] = y[i] + vy[i] * dt + 0.5f * ay[i] * dt * dt;
+            vx[i] += ax[i] * dt;
+            vy[i] += ay[i] * dt;
+        }
+
+        // for (unsigned int i = 0; i < s.n_particles; i += TILED_STEP) {
+        //     const unsigned int i1_end = std::min(i + TILED_STEP, s.n_particles);
+
+        //     for (unsigned int j = 0; j < s.n_particles; j += TILED_STEP) {
+        //         const unsigned int j1_end = std::min(j + TILED_STEP, s.n_particles);
+
+        //         for (unsigned int i1 = i; i1 < i1_end; ++i1) {
+        //             float ax = 0.0f;
+        //             float ay = 0.0f;
+
+        //             for (unsigned int j1 = j; j1 < j1_end; ++j1) {
+        //                 float dx = x[j1] - x[i1];
+        //                 float dy = y[j1] - y[i1];
+        //                 float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
+        //                 float coef = (m[j1] - q[i1] * q[j1] / m[i1]) * invr * invr * invr;
+
+        //                 ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
+        //                 ay += coef * dy;
+        //             }
+
+        //             xn[i1] += 0.5f * ax * dt * dt; /* update position of particle "i" */
+        //             yn[i1] += 0.5f * ay * dt * dt;
+        //             vx[i1] += ax * dt; /* update velocity of particle "i" */
+        //             vy[i1] += ay * dt;
+        //         }
+        //     }
+        // }
 
 #ifdef VISUAL
         for (unsigned int i = 0; i < s.n_particles; ++i) {
