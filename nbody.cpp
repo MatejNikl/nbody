@@ -205,7 +205,29 @@ run_simulation(const NBodySettings & s)
             }
         }
 
-        for(unsigned int i = 0; i < s.n_particles; ++i ) {
+        for(unsigned int i = 0; i + 3 < s.n_particles; i += 4 ) {
+            xn[i] = x[i] + vx[i] * dt + 0.5f * ax[i] * dt * dt;
+            yn[i] = y[i] + vy[i] * dt + 0.5f * ay[i] * dt * dt;
+            vx[i] += ax[i] * dt;
+            vy[i] += ay[i] * dt;
+
+            xn[i + 1] = x[i + 1] + vx[i + 1] * dt + 0.5f * ax[i + 1] * dt * dt;
+            yn[i + 1] = y[i + 1] + vy[i + 1] * dt + 0.5f * ay[i + 1] * dt * dt;
+            vx[i + 1] += ax[i + 1] * dt;
+            vy[i + 1] += ay[i + 1] * dt;
+
+            xn[i + 2] = x[i + 2] + vx[i + 2] * dt + 0.5f * ax[i + 2] * dt * dt;
+            yn[i + 2] = y[i + 2] + vy[i + 2] * dt + 0.5f * ay[i + 2] * dt * dt;
+            vx[i + 2] += ax[i + 2] * dt;
+            vy[i + 2] += ay[i + 2] * dt;
+
+            xn[i + 3] = x[i + 3] + vx[i + 3] * dt + 0.5f * ax[i + 3] * dt * dt;
+            yn[i + 3] = y[i + 3] + vy[i + 3] * dt + 0.5f * ay[i + 3] * dt * dt;
+            vx[i + 3] += ax[i + 3] * dt;
+            vy[i + 3] += ay[i + 3] * dt;
+        }
+
+        for(unsigned int i = s.n_particles & 0x3; i < s.n_particles; ++i ) {
             xn[i] = x[i] + vx[i] * dt + 0.5f * ax[i] * dt * dt;
             yn[i] = y[i] + vy[i] * dt + 0.5f * ay[i] * dt * dt;
             vx[i] += ax[i] * dt;
