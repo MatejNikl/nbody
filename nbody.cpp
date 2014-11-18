@@ -24,7 +24,7 @@ struct NBodySettings
     float        min_initcharge;
 
     NBodySettings()
-    : n_particles(1000u),
+    : n_particles(1000),
       n_steps(1000),
       img_width(500),
       img_height(500),
@@ -33,7 +33,7 @@ struct NBodySettings
       max_initspeed(30.0f),
       max_initmass(1000.0f),
       max_initcharge(1000.0f),
-      min_initspeed(0.0f),
+      min_initspeed(1e-6f), //cannot be zero
       min_initmass(0.0f),
       min_initcharge(-1000.0f)
     {
@@ -282,8 +282,9 @@ std::ostream &
 operator<<(std::ostream & os, const NBodySettings & s)
 {
     os << " n_particles=    " << s.n_particles    << std::endl
-       << " n_steps=        " << s.n_steps        << std::endl
-       << " img_width=      " << s.img_width      << std::endl
+       << " n_steps=        " << s.n_steps        << std::endl;
+#ifdef VISUAL
+    os << " img_width=      " << s.img_width      << std::endl
        << " img_height=     " << s.img_height     << std::endl
        << " plot_every=     " << s.plot_every     << std::endl
        << " time_step=      " << s.time_step      << std::endl
@@ -293,8 +294,6 @@ operator<<(std::ostream & os, const NBodySettings & s)
        << " min_initspeed=  " << s.min_initspeed  << std::endl
        << " min_initmass=   " << s.min_initmass   << std::endl
        << " min_initcharge= " << s.min_initcharge << std::endl;
-#ifndef VISUAL
-    os << "(non-visual mode)" << std::endl;
 #endif
     return os;
 }
