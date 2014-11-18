@@ -17,7 +17,4 @@ clean:
 video:
 	avconv -r 25 -i output_%05d.bmp -vcodec qtrle -pix_fmt rgb24 -r 25 $(filter-out $@,$(MAKECMDGOALS))
 
-%:
-	@:
-
 .PHONY: clean video
