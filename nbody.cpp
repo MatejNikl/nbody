@@ -160,6 +160,7 @@ run_simulation(const NBodySettings & s)
             vx[i] += ax * dt; /* update velocity of particle "i" */
             vy[i] += ay * dt;
 
+#ifdef VISUAL
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
@@ -175,6 +176,7 @@ run_simulation(const NBodySettings & s)
                 yn[i] = 2 * s.img_height - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
+#endif
         }
 
         std::swap(x, xn);
@@ -217,11 +219,10 @@ save_image(float * x,
     bitmap_image image(s.img_width + pen_width * 2, s.img_height + pen_width * 2);
     image_drawer drawer(image);
 
-    static float color_base = 100.0f;
     float max_val = std::max(std::max(std::fabs(s.max_initcharge),
                                       std::fabs(s.min_initcharge)),
                              s.max_initmass);
-    float norm = (255.0f - color_base) / max_val;
+    float norm = 255.0f / max_val;
 
     image.set_all_channels(0);
     drawer.pen_width(pen_width);
@@ -230,21 +231,18 @@ save_image(float * x,
 
         if (0 <= x[p] && x[p] <= s.img_width
          && 0 <= y[p] && y[p] <= s.img_height) {
-            if (q[p] > 0.0f) {
-                drawer.pen_color(roundf(color_base + q[p] * norm),
-                                 roundf(color_base + m[p] * norm),
+            if (q[p] >= 0.0f) {
+                drawer.pen_color(std::roundf(q[p] * norm),
+                                 std::roundf(m[p] * norm),
                                  0);
             } else if (q[p] < 0.0f) {
                 drawer.pen_color(0,
-                                 roundf(color_base + m[p] * norm),
-                                 roundf(color_base - q[p] * norm));
-            } else {
-                drawer.pen_color(0,
-                                 roundf(color_base + m[p] * norm),
-                                 0);
+                                 std::roundf(m[p] * norm),
+                                 std::roundf(q[p] * norm));
             }
 
-            drawer.plot_pen_pixel(x[p] + pen_width, y[p] + pen_width);
+            drawer.plot_pen_pixel(std::roundf(x[p] + pen_width),
+                                  std::roundf(y[p] + pen_width));
         }
     }
 
@@ -280,6 +278,7 @@ operator<<(std::ostream & os, const NBodySettings & s)
        << " n_steps=        " << s.n_steps        << std::endl
        << " img_width=      " << s.img_width      << std::endl
        << " img_height=     " << s.img_height     << std::endl
+       << " plot_every=     " << s.plot_every     << std::endl
        << " time_step=      " << s.time_step      << std::endl
        << " max_initspeed=  " << s.max_initspeed  << std::endl
        << " max_initmass=   " << s.max_initmass   << std::endl
@@ -297,7 +296,7 @@ void
 print_help(const char * runcmnd)
 {
     std::cout << "Usage: " << runcmnd
-              << " #particles #steps [width height plot_every time_step min_initspeed min_initmass min_initcharge min_initspeed min_initmass min_initcharge]" << std::endl
+              << " #particles #steps [width height plot_every time_step max_initspeed max_initmass max_initcharge min_initspeed min_initmass min_initcharge]" << std::endl
               << " defaults:" << std::endl
               << NBodySettings(); //print default values
 }
