@@ -190,7 +190,7 @@ run_simulation(const NBodySettings & s)
             *(v4sf *)(vy + i) = vyi + ay * vdt;
         }
 
-        for (unsigned int i = s.n_particles % 4; i < s.n_particles; ++i) {
+        for (unsigned int i = s.n_particles & ~0x3; i < s.n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
 
