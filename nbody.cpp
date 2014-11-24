@@ -141,13 +141,6 @@ run_simulation(const NBodySettings & s)
     init_array(m,   s.min_initmass,   s.max_initmass, s.n_particles);
     init_array(q, s.min_initcharge, s.max_initcharge, s.n_particles);
 
-    /*
-    vx[0] = vy[0] = 0;
-    x[0] =  s.img_width / 2;
-    y[0] = s.img_height / 2;
-    m[0] = -1e6;
-    */
-
     auto begin = std::chrono::steady_clock::now();
 
     const float half = 0.5f;
@@ -195,24 +188,6 @@ run_simulation(const NBodySettings & s)
             /* update velocity of particle "i" */
             *(v4sf *)(vx + i) = vxi + ax * vdt;
             *(v4sf *)(vy + i) = vyi + ay * vdt;
-
-#ifdef VISUAL
-            if (xn[i] < 0) {
-                xn[i] = -xn[i];
-                vx[i] = 0.5f * std::fabs(vx[i]);
-            } else if (xn[i] > s.img_width) {
-                xn[i] = 2 * s.img_width - xn[i];
-                vx[i] = -0.5f * std::fabs(vx[i]);
-            }
-
-            if (yn[i] < 0) {
-                yn[i] = -yn[i];
-                vy[i] = 0.5f * std::fabs(vy[i]);
-            } else if (yn[i] > s.img_height) {
-                yn[i] = 2 * s.img_height - yn[i];
-                vy[i] = -0.5f * std::fabs(vy[i]);
-            }
-#endif
         }
 
         for (unsigned int i = s.n_particles % 4; i < s.n_particles; ++i) {
@@ -237,8 +212,10 @@ run_simulation(const NBodySettings & s)
             /* update velocity of particle "i" */
             vx[i] += ax * dt;
             vy[i] += ay * dt;
+        }
 
 #ifdef VISUAL
+        for (unsigned int i = 0; i < s.n_particles; ++i) {
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
@@ -254,13 +231,8 @@ run_simulation(const NBodySettings & s)
                 yn[i] = 2 * s.img_height - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
-#endif
         }
 
-        std::swap(x, xn);
-        std::swap(y, yn);
-
-#ifdef VISUAL
         std::cout << '\r'
                   << "step: " << 1 + step << '/' << s.n_steps << ' '
                   << "plotted: " << std::ceil(((float) step) / s.plot_every) << '/' << std::ceil(((float) s.n_steps) / s.plot_every)
@@ -270,6 +242,9 @@ run_simulation(const NBodySettings & s)
             save_image(x, y, m, q, s, step / s.plot_every);
         }
 #endif
+
+        std::swap(x, xn);
+        std::swap(y, yn);
     }
 
 #ifdef VISUAL
