@@ -151,7 +151,7 @@ run_simulation(const NBodySettings & s)
     unsigned int step;
 
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-        for (unsigned int i = 0; i + 3 < s.n_particles; ++i) {
+        for (unsigned int i = 0; i + 3 < s.n_particles; i += 4) {
             float ax_0 = 0.0f;
             float ax_1 = 0.0f;
             float ax_2 = 0.0f;
