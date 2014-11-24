@@ -1,6 +1,6 @@
 CXX      := g++
 BIN      := nbody
-CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra -march=native
+CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra -fopenmp -march=native -mtune=native
 
 IMAGE    := output_00000.bmp
 

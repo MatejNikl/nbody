@@ -153,7 +153,8 @@ run_simulation(const NBodySettings & s)
 
     unsigned int step;
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-        for (unsigned int i = 0; i + 3 < s.n_particles; i += 4) {
+#       pragma omp parallel for schedule(static)
+        for (unsigned int i = 0; i < s.n_particles - 3; i += 4) {
             v4sf ax = { 0.0f, 0.0f, 0.0f, 0.0f };
             v4sf ay = { 0.0f, 0.0f, 0.0f, 0.0f };
 
