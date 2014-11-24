@@ -151,24 +151,68 @@ run_simulation(const NBodySettings & s)
     unsigned int step;
 
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-        for (unsigned int i = 0; i < s.n_particles; ++i) {
-            float ax = 0.0f;
-            float ay = 0.0f;
+        for (unsigned int i = 0; i + 3 < s.n_particles; ++i) {
+            float ax_0 = 0.0f;
+            float ax_1 = 0.0f;
+            float ax_2 = 0.0f;
+            float ax_3 = 0.0f;
+
+            float ay_0 = 0.0f;
+            float ay_1 = 0.0f;
+            float ay_2 = 0.0f;
+            float ay_3 = 0.0f;
 
             for (unsigned int j = 0; j < s.n_particles; ++j) {
-                float dx = x[j] - x[i];
-                float dy = y[j] - y[i];
-                float invr = 1.0f / std::sqrt(dx * dx + dy * dy + 0.5f);
-                float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
+                float dx_0 = x[j] - x[i + 0];
+                float dx_1 = x[j] - x[i + 1];
+                float dx_2 = x[j] - x[i + 2];
+                float dx_3 = x[j] - x[i + 3];
 
-                ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
-                ay += coef * dy;
+                float dy_0 = y[j] - y[i + 0];
+                float dy_1 = y[j] - y[i + 1];
+                float dy_2 = y[j] - y[i + 2];
+                float dy_3 = y[j] - y[i + 3];
+
+                float invr_0 = 1.0f / std::sqrt(dx_0 * dx_0 + dy_0 * dy_0 + 0.5f);
+                float invr_1 = 1.0f / std::sqrt(dx_1 * dx_1 + dy_1 * dy_1 + 0.5f);
+                float invr_2 = 1.0f / std::sqrt(dx_2 * dx_2 + dy_2 * dy_2 + 0.5f);
+                float invr_3 = 1.0f / std::sqrt(dx_3 * dx_3 + dy_3 * dy_3 + 0.5f);
+
+                float coef_0 = (m[j] - q[i + 0] * q[j] / m[i + 0]) * invr_0 * invr_0 * invr_0;
+                float coef_1 = (m[j] - q[i + 1] * q[j] / m[i + 1]) * invr_1 * invr_1 * invr_1;
+                float coef_2 = (m[j] - q[i + 2] * q[j] / m[i + 2]) * invr_2 * invr_2 * invr_2;
+                float coef_3 = (m[j] - q[i + 3] * q[j] / m[i + 3]) * invr_3 * invr_3 * invr_3;
+
+                ax_0 += coef_0 * dx_0; /* accumulate the acceleration from gravitational attraction */
+                ax_1 += coef_1 * dx_1;
+                ax_2 += coef_2 * dx_2;
+                ax_3 += coef_3 * dx_3;
+
+                ay_0 += coef_0 * dy_0;
+                ay_1 += coef_1 * dy_1;
+                ay_2 += coef_2 * dy_2;
+                ay_3 += coef_3 * dy_3;
             }
 
-            xn[i] = x[i] + vx[i] * dt + 0.5f * ax * dt * dt; /* update position of particle "i" */
-            yn[i] = y[i] + vy[i] * dt + 0.5f * ay * dt * dt;
-            vx[i] += ax * dt; /* update velocity of particle "i" */
-            vy[i] += ay * dt;
+            xn[i + 0] = x[i + 0] + vx[i + 0] * dt + 0.5f * ax_0 * dt * dt; /* update position of particle "i" */
+            xn[i + 1] = x[i + 1] + vx[i + 1] * dt + 0.5f * ax_1 * dt * dt;
+            xn[i + 2] = x[i + 2] + vx[i + 2] * dt + 0.5f * ax_2 * dt * dt;
+            xn[i + 3] = x[i + 3] + vx[i + 3] * dt + 0.5f * ax_3 * dt * dt;
+
+            yn[i + 0] = y[i + 0] + vy[i + 0] * dt + 0.5f * ay_0 * dt * dt;
+            yn[i + 1] = y[i + 1] + vy[i + 1] * dt + 0.5f * ay_1 * dt * dt;
+            yn[i + 2] = y[i + 2] + vy[i + 2] * dt + 0.5f * ay_2 * dt * dt;
+            yn[i + 3] = y[i + 3] + vy[i + 3] * dt + 0.5f * ay_3 * dt * dt;
+
+            vx[i + 0] += ax_0 * dt; /* update velocity of particle "i" */
+            vx[i + 1] += ax_1 * dt;
+            vx[i + 2] += ax_2 * dt;
+            vx[i + 3] += ax_3 * dt;
+
+            vy[i + 0] += ay_0 * dt;
+            vy[i + 1] += ay_1 * dt;
+            vy[i + 2] += ay_2 * dt;
+            vy[i + 3] += ay_3 * dt;
 
 #ifdef VISUAL
             if (xn[i] < 0) {
