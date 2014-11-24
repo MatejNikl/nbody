@@ -163,8 +163,6 @@ run_simulation(const NBodySettings & s)
             const v4sf yi = *(v4sf *)(y + i);
             const v4sf mi = *(v4sf *)(m + i);
             const v4sf qi = *(v4sf *)(q + i);
-            const v4sf vxi = *(v4sf *)(vx + i);
-            const v4sf vyi = *(v4sf *)(vy + i);
 
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 const v4sf xj = { x[j], x[j], x[j], x[j] };
@@ -182,6 +180,9 @@ run_simulation(const NBodySettings & s)
                 ax += coef * dx;
                 ay += coef * dy;
             }
+
+            const v4sf vxi = *(v4sf *)(vx + i);
+            const v4sf vyi = *(v4sf *)(vy + i);
 
             /* update position of particle "i" */
             *(v4sf *)(xn + i) = xi + vxi * vdt + vhalf * ax * vdt2;
