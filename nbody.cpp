@@ -150,9 +150,13 @@ run_simulation(const NBodySettings & s)
 
     auto begin = std::chrono::steady_clock::now();
 
-    const v4sf half = { 0.5f, 0.5f, 0.5f, 0.5f };
-    const v4sf dt = { s.time_step, s.time_step, s.time_step, s.time_step };
-    const v4sf dt2 = dt * dt;
+    const float half = 0.5f;
+    const float dt = s.time_step;
+    const float dt2 = dt * dt;
+
+    const v4sf vhalf = { half, half, half, half };
+    const v4sf vdt = { dt, dt, dt, dt };
+    const v4sf vdt2 = vdt * vdt;
 
     unsigned int step;
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
@@ -164,6 +168,8 @@ run_simulation(const NBodySettings & s)
             const v4sf yi = *(v4sf *)(y + i);
             const v4sf mi = *(v4sf *)(m + i);
             const v4sf qi = *(v4sf *)(q + i);
+            const v4sf vxi = *(v4sf *)(vx + i);
+            const v4sf vyi = *(v4sf *)(vy + i);
 
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 const v4sf xj = { x[j], x[j], x[j], x[j] };
@@ -174,7 +180,7 @@ run_simulation(const NBodySettings & s)
                 const v4sf dx = xj - xi;
                 const v4sf dy = yj - yi;
 
-                const v4sf invr = __builtin_ia32_rsqrtps( dx * dx + dy * dy + half );
+                const v4sf invr = __builtin_ia32_rsqrtps( dx * dx + dy * dy + vhalf );
                 const v4sf coef = (mj - qi * qj / mi) * invr * invr * invr;
 
                 /* accumulate the acceleration from gravitational attraction */
@@ -182,16 +188,55 @@ run_simulation(const NBodySettings & s)
                 ay += coef * dy;
             }
 
-            const v4sf vxi = *(v4sf *)(vx + i);
-            const v4sf vyi = *(v4sf *)(vy + i);
-
             /* update position of particle "i" */
-            *(v4sf *)(xn + i) = xi + vxi * dt + half * ax * dt2;
-            *(v4sf *)(yn + i) = yi + vyi * dt + half * ay * dt2;
+            *(v4sf *)(xn + i) = xi + vxi * vdt + vhalf * ax * vdt2;
+            *(v4sf *)(yn + i) = yi + vyi * vdt + vhalf * ay * vdt2;
 
             /* update velocity of particle "i" */
-            *(v4sf *)(vx + i) = vxi + ax * dt;
-            *(v4sf *)(vy + i) = vyi + ay * dt;
+            *(v4sf *)(vx + i) = vxi + ax * vdt;
+            *(v4sf *)(vy + i) = vyi + ay * vdt;
+
+#ifdef VISUAL
+            if (xn[i] < 0) {
+                xn[i] = -xn[i];
+                vx[i] = 0.5f * std::fabs(vx[i]);
+            } else if (xn[i] > s.img_width) {
+                xn[i] = 2 * s.img_width - xn[i];
+                vx[i] = -0.5f * std::fabs(vx[i]);
+            }
+
+            if (yn[i] < 0) {
+                yn[i] = -yn[i];
+                vy[i] = 0.5f * std::fabs(vy[i]);
+            } else if (yn[i] > s.img_height) {
+                yn[i] = 2 * s.img_height - yn[i];
+                vy[i] = -0.5f * std::fabs(vy[i]);
+            }
+#endif
+        }
+
+        for (unsigned int i = s.n_particles % 4; i < s.n_particles; ++i) {
+            float ax = 0.0f;
+            float ay = 0.0f;
+
+            for (unsigned int j = 0; j < s.n_particles; ++j) {
+                const float dx = x[j] - x[i];
+                const float dy = y[j] - y[i];
+                const float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
+                const float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
+                ay += coef * dy;
+            }
+
+            /* update position of particle "i" */
+            xn[i] = x[i] + vx[i] * dt + half * ax * dt2;
+            yn[i] = y[i] + vy[i] * dt + half * ay * dt2;
+
+            /* update velocity of particle "i" */
+            vx[i] += ax * dt;
+            vy[i] += ay * dt;
 
 #ifdef VISUAL
             if (xn[i] < 0) {
