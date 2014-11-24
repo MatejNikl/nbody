@@ -152,27 +152,18 @@ run_simulation(const NBodySettings & s)
 
     const v4sf half = { 0.5f, 0.5f, 0.5f, 0.5f };
     const v4sf dt = { s.time_step, s.time_step, s.time_step, s.time_step };
-    const v4sf dt2 = __builtin_ia32_mulps( dt, dt );
+    const v4sf dt2 = dt * dt;
 
     unsigned int step;
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
         for (unsigned int i = 0; i + 3 < s.n_particles; i += 4) {
-         /* float ax_0 = 0.0f;
-            float ax_1 = 0.0f;
-            float ax_2 = 0.0f;
-            float ax_3 = 0.0f; */
-            v4sf ax = __builtin_ia32_xorps( ax, ax );
+            v4sf ax = { 0.0f, 0.0f, 0.0f, 0.0f };
+            v4sf ay = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-         /* float ay_0 = 0.0f;
-            float ay_1 = 0.0f;
-            float ay_2 = 0.0f;
-            float ay_3 = 0.0f; */
-            v4sf ay = __builtin_ia32_xorps( ay, ay );
-
-            v4sf xi = __builtin_ia32_loadups( x + i );
-            v4sf yi = __builtin_ia32_loadups( y + i );
-            const v4sf mi = __builtin_ia32_loadups( m + i );
-            const v4sf qi = __builtin_ia32_loadups( q + i );
+            const v4sf xi = *(v4sf *)(x + i);
+            const v4sf yi = *(v4sf *)(y + i);
+            const v4sf mi = *(v4sf *)(m + i);
+            const v4sf qi = *(v4sf *)(q + i);
 
             for (unsigned int j = 0; j < s.n_particles; ++j) {
                 const v4sf xj = { x[j], x[j], x[j], x[j] };
@@ -180,102 +171,27 @@ run_simulation(const NBodySettings & s)
                 const v4sf mj = { m[j], m[j], m[j], m[j] };
                 const v4sf qj = { q[j], q[j], q[j], q[j] };
 
-             /* float dx_0 = x[j] - x[i + 0];
-                float dx_1 = x[j] - x[i + 1];
-                float dx_2 = x[j] - x[i + 2];
-                float dx_3 = x[j] - x[i + 3]; */
-                const v4sf dx = __builtin_ia32_subps( xj, xi );
+                const v4sf dx = xj - xi;
+                const v4sf dy = yj - yi;
 
-             /* float dy_0 = y[j] - y[i + 0];
-                float dy_1 = y[j] - y[i + 1];
-                float dy_2 = y[j] - y[i + 2];
-                float dy_3 = y[j] - y[i + 3]; */
-                const v4sf dy = __builtin_ia32_subps( yj, yi );
-
-             /* float invr_0 = 1.0f / std::sqrt(dx_0 * dx_0 + dy_0 * dy_0 + 0.5f);
-                float invr_1 = 1.0f / std::sqrt(dx_1 * dx_1 + dy_1 * dy_1 + 0.5f);
-                float invr_2 = 1.0f / std::sqrt(dx_2 * dx_2 + dy_2 * dy_2 + 0.5f);
-                float invr_3 = 1.0f / std::sqrt(dx_3 * dx_3 + dy_3 * dy_3 + 0.5f); */
-                const v4sf invr = __builtin_ia32_rsqrtps(
-                    __builtin_ia32_addps(
-                        __builtin_ia32_addps(
-                            __builtin_ia32_mulps( dx, dx ),
-                            __builtin_ia32_mulps( dy, dy ) ),
-                        half ) );
-                const v4sf invr3 = __builtin_ia32_mulps(
-                    invr, __builtin_ia32_mulps( invr, invr ) );
-
-             /* float coef_0 = (m[j] - q[i + 0] * q[j] / m[i + 0]) * invr_0 * invr_0 * invr_0;
-                float coef_1 = (m[j] - q[i + 1] * q[j] / m[i + 1]) * invr_1 * invr_1 * invr_1;
-                float coef_2 = (m[j] - q[i + 2] * q[j] / m[i + 2]) * invr_2 * invr_2 * invr_2;
-                float coef_3 = (m[j] - q[i + 3] * q[j] / m[i + 3]) * invr_3 * invr_3 * invr_3; */
-                const v4sf coef = __builtin_ia32_mulps(
-                    __builtin_ia32_subps(
-                        mj,
-                        __builtin_ia32_divps(
-                            __builtin_ia32_mulps( qi, qj ),
-                            mi ) ),
-                    invr3 );
+                const v4sf invr = __builtin_ia32_rsqrtps( dx * dx + dy * dy + half );
+                const v4sf coef = (mj - qi * qj / mi) * invr * invr * invr;
 
                 /* accumulate the acceleration from gravitational attraction */
-             /* ax[0] += coef_0 * dx_0;
-                ax[1] += coef_1 * dx_1;
-                ax[2] += coef_2 * dx_2;
-                ax[3] += coef_3 * dx_3; */
-                ax = __builtin_ia32_addps(
-                    ax, __builtin_ia32_mulps( coef, dx ) );
-
-             /* ay[0] += coef_0 * dy_0;
-                ay[1] += coef_1 * dy_1;
-                ay[2] += coef_2 * dy_2;
-                ay[3] += coef_3 * dy_3; */
-                ay = __builtin_ia32_addps(
-                    ay, __builtin_ia32_mulps( coef, dy ) );
+                ax += coef * dx;
+                ay += coef * dy;
             }
 
-            v4sf vxi = __builtin_ia32_loadups( vx + i );
-            v4sf vyi = __builtin_ia32_loadups( vy + i );
+            const v4sf vxi = *(v4sf *)(vx + i);
+            const v4sf vyi = *(v4sf *)(vy + i);
 
             /* update position of particle "i" */
-         /* xn[i + 0] = x[i + 0] + vx[i + 0] * dt + 0.5f * ax[0] * dt * dt;
-            xn[i + 1] = x[i + 1] + vx[i + 1] * dt + 0.5f * ax[1] * dt * dt;
-            xn[i + 2] = x[i + 2] + vx[i + 2] * dt + 0.5f * ax[2] * dt * dt;
-            xn[i + 3] = x[i + 3] + vx[i + 3] * dt + 0.5f * ax[3] * dt * dt; */
-            xi = __builtin_ia32_addps(
-                __builtin_ia32_addps(
-                    xi, __builtin_ia32_mulps( vxi, dt ) ),
-                __builtin_ia32_mulps(
-                    dt2, __builtin_ia32_mulps( half, ax ) ) );
-
-         /* yn[i + 0] = y[i + 0] + vy[i + 0] * dt + 0.5f * ay[0] * dt * dt;
-            yn[i + 1] = y[i + 1] + vy[i + 1] * dt + 0.5f * ay[1] * dt * dt;
-            yn[i + 2] = y[i + 2] + vy[i + 2] * dt + 0.5f * ay[2] * dt * dt;
-            yn[i + 3] = y[i + 3] + vy[i + 3] * dt + 0.5f * ay[3] * dt * dt; */
-            yi = __builtin_ia32_addps(
-                __builtin_ia32_addps(
-                    yi, __builtin_ia32_mulps( vyi, dt ) ),
-                __builtin_ia32_mulps(
-                    dt2, __builtin_ia32_mulps( half, ay ) ) );
+            *(v4sf *)(xn + i) = xi + vxi * dt + half * ax * dt2;
+            *(v4sf *)(yn + i) = yi + vyi * dt + half * ay * dt2;
 
             /* update velocity of particle "i" */
-         /* vx[i + 0] += ax[0] * dt;
-            vx[i + 1] += ax[1] * dt;
-            vx[i + 2] += ax[2] * dt;
-            vx[i + 3] += ax[3] * dt; */
-            vxi = __builtin_ia32_addps(
-                vxi, __builtin_ia32_mulps( ax, dt ) );
-
-         /* vy[i + 0] += ay[0] * dt;
-            vy[i + 1] += ay[1] * dt;
-            vy[i + 2] += ay[2] * dt;
-            vy[i + 3] += ay[3] * dt; */
-            vyi = __builtin_ia32_addps(
-                vyi, __builtin_ia32_mulps( ay, dt ) );
-
-            __builtin_ia32_storeups( xn + i, xi );
-            __builtin_ia32_storeups( yn + i, yi );
-            __builtin_ia32_storeups( vx + i, vxi );
-            __builtin_ia32_storeups( vy + i, vyi );
+            *(v4sf *)(vx + i) = vxi + ax * dt;
+            *(v4sf *)(vy + i) = vyi + ay * dt;
 
 #ifdef VISUAL
             if (xn[i] < 0) {
