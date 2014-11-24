@@ -153,7 +153,8 @@ run_simulation(const NBodySettings & s)
 
     unsigned int step;
     for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-#       pragma omp parallel for schedule(static)
+#       pragma omp parallel for schedule(static) default(none) \
+            firstprivate(x, y, xn, yn, vx, vy, m, q) shared(s)
         for (unsigned int i = 0; i < s.n_particles - 3; i += 4) {
             v4sf ax = { 0.0f, 0.0f, 0.0f, 0.0f };
             v4sf ay = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -216,6 +217,8 @@ run_simulation(const NBodySettings & s)
         }
 
 #ifdef VISUAL
+#       pragma omp parallel for schedule(static) default(none) \
+            firstprivate(xn, yn, vx, vy) shared(s)
         for (unsigned int i = 0; i < s.n_particles; ++i) {
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
