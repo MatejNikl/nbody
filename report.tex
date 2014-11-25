@@ -11,6 +11,7 @@
 \usepackage{datetime}
 \usepackage{listings}
 \usepackage{color}
+\usepackage{graphicx}
 
 \title{Modelování částic \\ Technická zpráva z předmětu BI-EIA}
 \author{Jan Bobek, Matěj Nikl}
@@ -169,6 +170,13 @@ vektorizován. Pro výpočet odmocniny byla ručně použita SSE instrukce
 Také jsme zjistili, že volba optimalizací \texttt{-Ofast} zvyšuje oproti
 \texttt{-O3} výkon obou verzí algoritmu, avšak zejména té neoptimalizované.
 Podrobné výsledky viz. níže.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.91\textwidth]{graph1.eps}
+    %%\caption{}
+    \label{fig:1}
+\end{figure}
 
 \section{Paralelizovaná verze}
 
