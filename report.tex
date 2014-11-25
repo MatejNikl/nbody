@@ -169,14 +169,21 @@ vektorizován. Pro výpočet odmocniny byla ručně použita SSE instrukce
 
 Také jsme zjistili, že volba optimalizací \texttt{-Ofast} zvyšuje oproti
 \texttt{-O3} výkon obou verzí algoritmu, avšak zejména té neoptimalizované.
-Podrobné výsledky viz. níže.
+Podrobné výsledky viz níže.
 
-\begin{figure}[h!]
+\begin{figure}[h]
     \centering
     \includegraphics[width=0.91\textwidth]{graph1.eps}
     %%\caption{}
     \label{fig:1}
 \end{figure}
+
+Z měření je dále vidět, že ani pro nejvyšší měřitelné $ n = 440000 $, kdy doba
+běhu naivní verze již atakovala limitních 60 minut, nedochází k žádnému
+viditelnému zpomalení z důvodu výpadků cache. Dalo by se tedy předpokládat,
+že loop tiling nepřinese žádné zrychlení $ - $ což se také na naší
+experimentální verzi potvrdilo $ - $ verze s loop tilingem byla vždy méně
+výkonná, a proto jsme se rozhodli se jí nijak dále nezabývat.
 
 \section{Paralelizovaná verze}
 
