@@ -238,14 +238,15 @@ run_simulation(const NBodySettings & s)
             }
         }
 
-        std::cout << '\r'
-                  << "step: " << 1 + step << '/' << s.n_steps << ' '
-                  << "plotted: " << std::ceil(((float) step) / s.plot_every) << '/' << std::ceil(((float) s.n_steps) / s.plot_every)
-                  << std::flush;
-
         if (step % s.plot_every == 0) {
             save_image(x, y, m, q, s, step / s.plot_every);
         }
+
+        std::cout << '\r'
+                  << "step: " << 1 + step << '/' << s.n_steps << ' '
+                  << "plotted: " << 1 + step / s.plot_every << '/' << std::ceil(((float) s.n_steps) / s.plot_every)
+                  << std::flush;
+
 #endif
 
         std::swap(x, xn);
@@ -304,7 +305,7 @@ save_image(float * x,
             } else if (q[p] < 0.0f) {
                 drawer.pen_color(0,
                                  std::round(m[p] * norm),
-                                 std::round(q[p] * norm));
+                                 std::round(-q[p] * norm));
             }
 
             drawer.plot_pen_pixel(std::round(x[p] + pen_width),
