@@ -67,6 +67,12 @@ init_array(float * arr,
            float max,
            unsigned int n);
 
+std::ostream &
+operator<<(std::ostream & os, const NBodySettings & s);
+
+void
+print_status(unsigned int step, const NBodySettings & s);
+
 void
 print_help(const char * runcmnd);
 
@@ -224,7 +230,7 @@ run_simulation(const NBodySettings & s)
             if (xn[i] < 0) {
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
-            } else if (xn[i] > s.img_width) {
+            } else if (xn[i] > s.img_width - 1) {
                 xn[i] = 2 * s.img_width - xn[i];
                 vx[i] = -0.5f * std::fabs(vx[i]);
             }
@@ -232,7 +238,7 @@ run_simulation(const NBodySettings & s)
             if (yn[i] < 0) {
                 yn[i] = -yn[i];
                 vy[i] = 0.5f * std::fabs(vy[i]);
-            } else if (yn[i] > s.img_height) {
+            } else if (yn[i] > s.img_height - 1) {
                 yn[i] = 2 * s.img_height - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
@@ -242,11 +248,7 @@ run_simulation(const NBodySettings & s)
             save_image(x, y, m, q, s, step / s.plot_every);
         }
 
-        std::cout << '\r'
-                  << "step: " << 1 + step << '/' << s.n_steps << ' '
-                  << "plotted: " << 1 + step / s.plot_every << '/' << std::ceil(((float) s.n_steps) / s.plot_every)
-                  << std::flush;
-
+        print_status(step, s);
 #endif
 
         std::swap(x, xn);
@@ -254,6 +256,10 @@ run_simulation(const NBodySettings & s)
     }
 
 #ifdef VISUAL
+    if (step % s.plot_every == 0) {
+        save_image(x, y, m, q, s, step / s.plot_every);
+    }
+    print_status(step, s);
     std::cout << std::endl;
 #else
     std::cout << "Processed: " << step << " steps" << std::endl;
@@ -272,6 +278,7 @@ run_simulation(const NBodySettings & s)
     delete [] vx;
     delete [] vy;
     delete [] m;
+    delete [] q;
 }
 
 void
@@ -282,8 +289,7 @@ save_image(float * x,
            const NBodySettings & s,
            unsigned int seq)
 {
-    static const int pen_width = 2;
-    bitmap_image image(s.img_width + pen_width * 2, s.img_height + pen_width * 2);
+    bitmap_image image(s.img_width, s.img_height);
     image_drawer drawer(image);
 
     float max_val = std::max(std::max(std::fabs(s.max_initcharge),
@@ -292,12 +298,13 @@ save_image(float * x,
     float norm = 255.0f / max_val;
 
     image.set_all_channels(0);
-    drawer.pen_width(pen_width);
 
     for (unsigned int p = 0; p < s.n_particles; ++p) {
+        float xr = std::round(x[p]);
+        float yr = std::round(y[p]);
 
-        if (0 <= x[p] && x[p] <= s.img_width
-         && 0 <= y[p] && y[p] <= s.img_height) {
+        if (0 <= xr && xr <= s.img_width  - 1
+         && 0 <= yr && yr <= s.img_height - 1) {
             if (q[p] >= 0.0f) {
                 drawer.pen_color(std::round(q[p] * norm),
                                  std::round(m[p] * norm),
@@ -308,8 +315,7 @@ save_image(float * x,
                                  std::round(-q[p] * norm));
             }
 
-            drawer.plot_pen_pixel(std::round(x[p] + pen_width),
-                                  std::round(y[p] + pen_width));
+            drawer.plot_pixel(xr, yr);
         }
     }
 
@@ -363,6 +369,17 @@ operator<<(std::ostream & os, const NBodySettings & s)
 #endif
     return os;
 }
+
+void
+print_status(unsigned int step, const NBodySettings & s)
+{
+
+    std::cout << '\r'
+              << "step: " << step << '/' << s.n_steps << ' '
+              << "plotted: " << 1 + step / s.plot_every << '/' << 1 + s.n_steps / s.plot_every
+              << std::flush;
+}
+
 
 void
 print_help(const char * runcmnd)
