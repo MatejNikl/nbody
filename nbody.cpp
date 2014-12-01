@@ -231,7 +231,7 @@ run_simulation(const NBodySettings & s)
                 xn[i] = -xn[i];
                 vx[i] = 0.5f * std::fabs(vx[i]);
             } else if (xn[i] > s.img_width - 1) {
-                xn[i] = 2 * s.img_width - xn[i];
+                xn[i] = 2 * (s.img_width - 1) - xn[i];
                 vx[i] = -0.5f * std::fabs(vx[i]);
             }
 
@@ -239,7 +239,7 @@ run_simulation(const NBodySettings & s)
                 yn[i] = -yn[i];
                 vy[i] = 0.5f * std::fabs(vy[i]);
             } else if (yn[i] > s.img_height - 1) {
-                yn[i] = 2 * s.img_height - yn[i];
+                yn[i] = 2 * (s.img_height - 1) - yn[i];
                 vy[i] = -0.5f * std::fabs(vy[i]);
             }
         }
