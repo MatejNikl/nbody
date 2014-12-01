@@ -140,8 +140,8 @@ run_simulation(const NBodySettings & s)
     float * m  = new float[s.n_particles];
     float * q  = new float[s.n_particles];
 
-    init_array(x,                0,      s.img_width, s.n_particles);
-    init_array(y,                0,     s.img_height, s.n_particles);
+    init_array(x,                0,  s.img_width - 1, s.n_particles);
+    init_array(y,                0, s.img_height - 1, s.n_particles);
     init_array(vx, s.min_initspeed,  s.max_initspeed, s.n_particles);
     init_array(vy, s.min_initspeed,  s.max_initspeed, s.n_particles);
     init_array(m,   s.min_initmass,   s.max_initmass, s.n_particles);
