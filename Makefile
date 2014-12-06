@@ -1,36 +1,44 @@
 CXX      := g++
 BIN      := nbody
-CXXFLAGS := -O0 -g3 -std=c++11 -pedantic -Wall -Wextra -fopenmp -march=native -mtune=native
+VBIN     := v_nbody
+CXXFLAGS := -Ofast -g3 -std=c++11 -pedantic -Wall -Wextra -fopenmp -march=native -mtune=native
 
 BUILD    := build
 SRC      := src
 
 SRCS     := $(sort $(wildcard $(SRC)/*.cpp))
 OBJS     := $(addprefix $(BUILD)/,$(notdir $(SRCS:.cpp=.o)))
-DEPS     := $(OBJS:.o=.d)
+VOBJS    := $(addprefix $(BUILD)/v_,$(notdir $(SRCS:.cpp=.o)))
+DEPS     := $(OBJS:.o=.d) $(VOBJS:.o=.d)
 
-all: $(BIN)
+
+perf performance: $(BIN)
+vis visual: $(VBIN)
+all: perf vis
 
 # include compiler-generated dependencies, so obj files get recompiled when
 # included headers change
 -include $(DEPS)
 
-visual: CXXFLAGS += -DVISUAL
-visual: $(BIN)
-
 $(BIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
+$(VBIN): $(VOBJS)
+	$(CXX) $(CXXFLAGS) -DVISUAL $^ -o $@
+
 $(BUILD)/%.o: $(SRC)/%.cpp Makefile | $(BUILD)
 	$(CXX) -c $(CXXFLAGS) -MMD $< -o $@
+
+$(BUILD)/v_%.o: $(SRC)/%.cpp Makefile | $(BUILD)
+	$(CXX) -c $(CXXFLAGS) -DVISUAL -MMD $< -o $@
 
 $(BUILD):
 	mkdir $(BUILD)
 
 clean:
-	rm -rf $(BIN) $(BUILD)
+	rm -rf $(BIN) $(VBIN) $(BUILD)
 
 run: $(BIN)
 	./$(BIN) 1000 1000
 
-.PHONY: clean run
+.PHONY: perf performance vis visual all clean run
