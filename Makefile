@@ -1,7 +1,7 @@
 CXX      := g++
 BIN      := nbody
 VBIN     := v_nbody
-CXXFLAGS := -Ofast -g3 -std=c++11 -pedantic -Wall -Wextra -march=native -mtune=native
+CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra -march=native -mtune=native
 
 BUILD    := build
 SRC      := src

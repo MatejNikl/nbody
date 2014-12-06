@@ -425,7 +425,7 @@ print_aligned(std::ostream & os,
 #ifdef VISUAL
     static const int w = 25;
 #else
-    static const int w = 17;
+    static const int w = 20;
 #endif
     static const char f = ' ';
     os << s << '=' << std::setfill(f) << std::setw(w - s.length()) << val << std::endl;
