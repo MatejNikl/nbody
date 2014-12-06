@@ -400,11 +400,11 @@ NBodySim::run_simulation()
         std::ofstream f;
         f.exceptions(std::ios::failbit | std::ios::badbit);
 
-        std::cout << "Dumping particles to file '" << m_dumpfile << "'..." << std::flush;
-
         try {
+            std::cout << "Dumping particles to file '" << m_dumpfile << "'..." << std::flush;
             f.open(m_dumpfile);
             dump_particles(f);
+            f.close();
             std::cout << "success" << std::endl;
         } catch (std::exception & ex) {
             std::cout << "error" << std::endl;
