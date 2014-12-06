@@ -107,6 +107,7 @@ print_help(const char * runcmnd)
 {
     std::cout << "Usage:" << std::endl
               << runcmnd << " #particles #steps" << std::endl
+              << runcmnd << " non-existant file (writes default one)" << std::endl
               << runcmnd << " settings_file [particles_file]" << std::endl;
 }
 

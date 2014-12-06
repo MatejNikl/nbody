@@ -498,9 +498,9 @@ operator<<(std::ostream & os, const NBodySim & s)
        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITSPEED,  s.m_min_initspeed);
        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITMASS,   s.m_min_initmass);
        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITCHARGE, s.m_min_initcharge);
-       print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
        print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
-       print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
 #endif
+       print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
+       print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
     return os;
 }
