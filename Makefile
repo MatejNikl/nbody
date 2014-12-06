@@ -1,31 +1,44 @@
 CXX      := g++
 BIN      := nbody
-CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra
+VBIN     := v_nbody
+CXXFLAGS := -Ofast -g3 -std=c++11 -pedantic -Wall -Wextra -march=native -mtune=native
 
-IMAGE    := output_00000.bmp
+BUILD    := build
+SRC      := src
 
-all: $(BIN)
+SRCS     := $(sort $(wildcard $(SRC)/*.cpp))
+OBJS     := $(addprefix $(BUILD)/,$(notdir $(SRCS:.cpp=.o)))
+VOBJS    := $(addprefix $(BUILD)/v_,$(notdir $(SRCS:.cpp=.o)))
+DEPS     := $(OBJS:.o=.d) $(VOBJS:.o=.d)
 
-visual: CXXFLAGS += -DVISUAL
-visual: $(BIN)
 
-.SECONDEXPANSION:
-$(BIN): $$@.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+perf performance: $(BIN)
+vis visual: $(VBIN)
+all: perf vis
+
+# include compiler-generated dependencies, so obj files get recompiled when
+# included headers change
+-include $(DEPS)
+
+$(BIN): $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+$(VBIN): $(VOBJS)
+	$(CXX) $(CXXFLAGS) -DVISUAL $^ -o $@
+
+$(BUILD)/%.o: $(SRC)/%.cpp Makefile | $(BUILD)
+	$(CXX) -c $(CXXFLAGS) -MMD $< -o $@
+
+$(BUILD)/v_%.o: $(SRC)/%.cpp Makefile | $(BUILD)
+	$(CXX) -c $(CXXFLAGS) -DVISUAL -MMD $< -o $@
+
+$(BUILD):
+	mkdir $(BUILD)
 
 clean:
-	rm -f $(BIN)
+	rm -rf $(BIN) $(VBIN) $(BUILD)
 
-run:
+run: $(BIN)
 	./$(BIN) 1000 1000
 
-visualrun: visual
-	./$(BIN) 50 25000 800 600 50 0.002 0 1000 1000 0 0.001 -1000
-
-video: $(IMAGE)
-	avconv -r 25 -i output_%05d.bmp -vcodec qtrle -pix_fmt rgb24 -r 25 $(filter-out $@,$(MAKECMDGOALS))
-	rm output_*.bmp
-
-$(IMAGE): visualrun
-
-.PHONY: clean run visualrun video
+.PHONY: perf performance vis visual all clean run
