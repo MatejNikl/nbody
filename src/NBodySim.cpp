@@ -207,15 +207,18 @@ NBodySim::dump_particles(std::ostream & s) const
 {
     s << "#x\ty\txnext\tynext\tvelx\tvely\tmass\tcharge" << std::endl;
 
+    s << std::setprecision(10);
+    s << std::fixed;
+
     for (unsigned int i = 0; i < m_n_particles; ++i) {
-        s << m_x[i] << '\t'
-          << m_y[i] << '\t'
+        s << m_x[i]  << '\t'
+          << m_y[i]  << '\t'
           << m_xn[i] << '\t'
           << m_yn[i] << '\t'
           << m_vx[i] << '\t'
           << m_vy[i] << '\t'
-          << m_m[i] << '\t'
-          << m_q[i] << '\t'
+          << m_m[i]  << '\t'
+          << m_q[i]  << '\t'
           << std::endl;
     }
 
