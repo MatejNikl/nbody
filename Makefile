@@ -48,7 +48,7 @@ run: $(BIN)
 
 test: $(BIN)
 	./$(BIN) $(REF_CONF) $(REF_IN)
-	diff $(REF_OUT) $(TEST_OUT)
+	diff -u $(REF_OUT) $(TEST_OUT)
 
 
 .PHONY: perf performance vis visual all clean run test
