@@ -50,11 +50,17 @@ main(int argc, char *argv[])
                 std::cout << "success" << std::endl;
 
                 if (argc == 3) {
-                    std::cout << "Loading particles from file '" << argv[2] << "'..." << std::flush;
-                    f.open(argv[2]);
-                    s->load_particles(f);
-                    f.close();
-                    std::cout << "success" << std::endl;
+                    if (!std::strcmp(argv[2], "-")) {
+                        std::cout << "Loading particles from stdin..." << std::flush;
+                        s->load_particles(std::cin);
+                        std::cout << "success" << std::endl;
+                    } else {
+                        std::cout << "Loading particles from file '" << argv[2] << "'..." << std::flush;
+                        f.open(argv[2]);
+                        s->load_particles(f);
+                        f.close();
+                        std::cout << "success" << std::endl;
+                    }
                 }
             } catch (const std::ifstream::failure & e) {
                 std::cout << "error" << std::endl;
