@@ -339,6 +339,8 @@ NBodySim::run_simulation()
     memset( &conf, 0, sizeof(conf) );
     conf.n_particles = m_n_particles;
     conf.n_steps = m_n_steps;
+    conf.img_width = m_img_width;
+    conf.img_height = m_img_height;
     conf.dt = m_time_step;
     conf.cb = &NBodySim::simulator_callback;
     conf.cb_arg = this;

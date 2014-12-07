@@ -38,7 +38,10 @@ typedef struct
 {
     unsigned int n_particles;
     unsigned int n_steps;
+    unsigned int img_width;
+    unsigned int img_height;
     float dt;
+
     simulator_callback_t cb;
     void* cb_arg;
 } simulator_conf_t;
