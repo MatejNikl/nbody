@@ -1,18 +1,16 @@
 #include <chrono>
-#include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <cstring> // strerror()
 #include <ctime>
+
+#include <stdexcept>
 #include <iomanip>
 #include <limits>
 #include <sstream>
-#include <xmmintrin.h>
 
 #include "NBodySim.h"
 #include "bitmap_image.hpp"
-
-typedef float v4sf __attribute__((vector_size (16)));
 
 /*************************************************************************/
 /* Trimming functions                                                    */
@@ -72,6 +70,7 @@ operator<<(std::ostream & os, const NBodySim & s)
        print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
 #endif
        print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
+       print_aligned(os, NBodySim::CONF_KEYS::SIMULATOR,      s.m_simulator);
        print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
     return os;
 }
@@ -115,12 +114,37 @@ NBodySim::signal_handler(int signum)
     NBodySim::interrupted = signum;
 }
 
+bool
+NBodySim::simulator_callback(void* arg,
+                             unsigned int step,
+                             float* x,
+                             float* y,
+                             float* vx,
+                             float* vy)
+{
+    NBodySim* self = (NBodySim*)arg;
+
+#ifdef VISUAL
+    if (step % self->m_plot_every == 0) {
+        self->save_image(step / self->m_plot_every);
+    }
+
+    self->print_status(step);
+#endif
+
+    std::swap(self->m_x, self->m_xn);
+    std::swap(self->m_y, self->m_yn);
+    return !NBodySim::interrupted;
+}
+
 NBodySim::NBodySim(unsigned int n_particles,
-                   unsigned int n_steps)
+                   unsigned int n_steps,
+                   const std::string& simulator)
 {
     load_default_settings();
     m_n_particles = n_particles;
     m_n_steps = n_steps;
+    m_simulator = simulator;
 
     initialize();
 }
@@ -150,6 +174,8 @@ NBodySim::load_default_settings()
     m_min_initspeed = 0.0f;
     m_min_initmass = 1e-6f; //cannot be zero
     m_min_initcharge = -1000.0f;
+
+    m_simulator = "naive";
 }
 
 bool
@@ -204,6 +230,8 @@ NBodySim::load_settings(std::istream & s)
                     m_img_prefix = value;
                 } else if (key == CONF_KEYS::DUMP_FILE) {
                     m_dumpfile = value;
+                } else if (key == CONF_KEYS::SIMULATOR) {
+                    m_simulator = value;
                 } else {
                     std::cerr << "Ignoring unknown key: " << key << " = " << value << std::endl;
                 }
@@ -288,6 +316,9 @@ NBodySim::initialize()
 
     srand(m_seed);
 
+    if( !(m_simfun = get_simulator( m_simulator.c_str() )) )
+        throw std::runtime_error( "Simulator not found" );
+
     if (0 < m_n_particles) {
         init_array(m_x.begin(),  m_x.end(),  0,                m_img_width - 1);
         init_array(m_y.begin(),  m_y.end(),  0,                m_img_height - 1);
@@ -304,81 +335,27 @@ NBodySim::run_simulation()
     std::cout << "Running simulation with:" << std::endl;
     std::cout << *this;
 
-#ifdef VISUAL
-    const unsigned int img_height = m_img_height;
-    const unsigned int img_width  = m_img_width;
-    const unsigned int plot_every = m_plot_every;
-#endif
-    const unsigned int n_particles = m_n_particles;
+    simulator_conf_t conf;
+    memset( &conf, 0, sizeof(conf) );
+    conf.n_particles = m_n_particles;
+    conf.n_steps = m_n_steps;
+    conf.dt = m_time_step;
+    conf.cb = &NBodySim::simulator_callback;
+    conf.cb_arg = this;
 
-    float * x  = m_x.data();
-    float * y  = m_y.data();
-    float * xn = m_xn.data();
-    float * yn = m_yn.data();
-    float * const vx = m_vx.data();
-    float * const vy = m_vy.data();
-    const float * const m = m_m.data();
-    const float * const q = m_q.data();
-
-    const float half = 0.5f;
-    const float dt = m_time_step;
-    const float dt2 = dt * dt;
+    simulator_data_t data;
+    memset( &data, 0, sizeof(data) );
+    data.x = m_x.data();
+    data.y = m_y.data();
+    data.xn = m_xn.data();
+    data.yn = m_yn.data();
+    data.vx = m_vx.data();
+    data.vy = m_vy.data();
+    data.m = m_m.data();
+    data.q = m_q.data();
 
     auto begin = std::chrono::steady_clock::now();
-
-    unsigned int step;
-    for (step = 0; step < m_n_steps && !NBodySim::interrupted; ++step) {
-        for (unsigned int i = 0; i < n_particles; ++i) {
-            float ax = 0.0f;
-            float ay = 0.0f;
-
-            for (unsigned int j = 0; j < n_particles; ++j) {
-                float dx = x[j] - x[i];
-                float dy = y[j] - y[i];
-                float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
-                float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
-
-                ax += coef * dx; /* accumulate the acceleration from gravitational attraction */
-                ay += coef * dy;
-            }
-
-            xn[i] = x[i] + vx[i] * dt + half * ax * dt2; /* update position of particle "i" */
-            yn[i] = y[i] + vy[i] * dt + half * ay * dt2;
-            vx[i] += ax * dt; /* update velocity of particle "i" */
-            vy[i] += ay * dt;
-        }
-
-#ifdef VISUAL
-        for (unsigned int i = 0; i < n_particles; ++i) {
-            if (xn[i] < 0) {
-                xn[i] = -xn[i];
-                vx[i] = 0.5f * std::fabs(vx[i]);
-            } else if (xn[i] > img_width - 1) {
-                xn[i] = 2 * (img_width - 1) - xn[i];
-                vx[i] = -0.5f * std::fabs(vx[i]);
-            }
-
-            if (yn[i] < 0) {
-                yn[i] = -yn[i];
-                vy[i] = 0.5f * std::fabs(vy[i]);
-            } else if (yn[i] > img_height - 1) {
-                yn[i] = 2 * (img_height - 1) - yn[i];
-                vy[i] = -0.5f * std::fabs(vy[i]);
-            }
-        }
-
-        if (step % plot_every == 0) {
-            save_image(step / plot_every);
-        }
-
-        print_status(step);
-#endif
-
-        std::swap(x, xn);
-        std::swap(y, yn);
-        std::swap(m_x, m_xn);
-        std::swap(m_y, m_yn);
-    }
+    unsigned int step = (*m_simfun)(&conf, &data);
 
 #ifdef VISUAL
     if (step % m_plot_every == 0) {
@@ -485,3 +462,4 @@ const std::string NBodySim::CONF_KEYS::MIN_INITCHARGE = "min_initcharge";
 const std::string NBodySim::CONF_KEYS::SEED           = "rand_seed";
 const std::string NBodySim::CONF_KEYS::IMG_PREFIX     = "img_prefix";
 const std::string NBodySim::CONF_KEYS::DUMP_FILE      = "dump_file";
+const std::string NBodySim::CONF_KEYS::SIMULATOR      = "simulator";

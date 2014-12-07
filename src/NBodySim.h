@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "simulators.h"
+
 class NBodySim {
     friend std::ostream& operator<<(std::ostream& os, const NBodySim& s);
 
@@ -12,7 +14,8 @@ public:
     static void register_signal(int signum);
 
     NBodySim(unsigned int n_particles,
-             unsigned int n_steps);
+             unsigned int n_steps,
+             const std::string& simulator);
     NBodySim(std::istream & s);
 
     void load_default_settings();
@@ -43,6 +46,7 @@ private:
         static const std::string SEED;
         static const std::string IMG_PREFIX;
         static const std::string DUMP_FILE;
+        static const std::string SIMULATOR;
     };
 
     template <class ForwardIterator>
@@ -51,6 +55,13 @@ private:
                            float min,
                            float max);
     static void signal_handler(int signum);
+
+    static bool simulator_callback(void* arg,
+                                   unsigned int step,
+                                   float* x,
+                                   float* y,
+                                   float* vx,
+                                   float* vy);
 
     unsigned int m_n_particles;
     unsigned int m_n_steps;
@@ -78,6 +89,9 @@ private:
 
     std::string m_img_prefix;
     std::string m_dumpfile;
+    std::string m_simulator;
+
+    simulator_t m_simfun;
 
     static volatile bool interrupted;
 };
