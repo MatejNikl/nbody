@@ -224,10 +224,11 @@ NBodySim::load_settings(std::istream & s)
 bool
 NBodySim::load_particles(std::istream & s)
 {
+    unsigned int i = 0;
     std::string line;
 
     try {
-        for (unsigned int i = 0; i < m_n_particles && std::getline(s, line); ++i) {
+        while (i < m_n_particles && std::getline(s, line)) {
             if(line.empty() || line[0] == '#')
                 // skip empty lines and comments
                 continue;
@@ -241,6 +242,7 @@ NBodySim::load_particles(std::istream & s)
                 >> m_vy[i]
                 >> m_m[i]
                 >> m_q[i];
+            ++i;
         }
     } catch (std::exception & ex) {
         if (!s.eof())
