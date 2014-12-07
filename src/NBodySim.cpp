@@ -14,24 +14,78 @@
 
 typedef float v4sf __attribute__((vector_size (16)));
 
+/*************************************************************************/
+/* Trimming functions                                                    */
+/*************************************************************************/
+const char * trimchars = " \t\n\r\f\v\"";
+
+static inline std::string &
+rtrim(std::string& s, const char * t = trimchars)
+{
+    s.erase(s.find_last_not_of(t) + 1);
+    return s;
+}
+
+static inline std::string &
+ltrim(std::string& s, const char * t = trimchars)
+{
+    s.erase(0, s.find_first_not_of(t));
+    return s;
+}
+
+static inline std::string &
+trim(std::string & s, const char * t = trimchars)
+{
+    return ltrim(rtrim(s, t), t);
+}
+
+/*************************************************************************/
+/* Printing functions                                                    */
+/*************************************************************************/
+template <class T>
+static inline void
+print_aligned(std::ostream & os,
+              const std::string & s,
+              const T & val)
+{
+    static const int w = 25;
+    static const char f = ' ';
+    os << s << '=' << std::setfill(f) << std::setw(w - s.length()) << val << std::endl;
+}
+
+std::ostream &
+operator<<(std::ostream & os, const NBodySim & s)
+{
+       print_aligned(os, NBodySim::CONF_KEYS::N_PARTICLES,    s.m_n_particles);
+       print_aligned(os, NBodySim::CONF_KEYS::N_STEPS,        s.m_n_steps);
+#ifdef VISUAL
+       print_aligned(os, NBodySim::CONF_KEYS::IMG_WIDTH,      s.m_img_width);
+       print_aligned(os, NBodySim::CONF_KEYS::IMG_HEIGHT,     s.m_img_height);
+       print_aligned(os, NBodySim::CONF_KEYS::PLOT_EVERY,     s.m_plot_every);
+       print_aligned(os, NBodySim::CONF_KEYS::TIME_STEP,      s.m_time_step);
+       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITSPEED,  s.m_max_initspeed);
+       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITMASS,   s.m_max_initmass);
+       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITCHARGE, s.m_max_initcharge);
+       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITSPEED,  s.m_min_initspeed);
+       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITMASS,   s.m_min_initmass);
+       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITCHARGE, s.m_min_initcharge);
+       print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
+#endif
+       print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
+       print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
+    return os;
+}
+
+/*************************************************************************/
+/* NBodySim                                                              */
+/*************************************************************************/
 volatile bool NBodySim::interrupted = false;
 
-const std::string NBodySim::CONF_KEYS::N_PARTICLES    = "n_particles";
-const std::string NBodySim::CONF_KEYS::N_STEPS        = "n_steps";
-const std::string NBodySim::CONF_KEYS::IMG_WIDTH      = "img_width";
-const std::string NBodySim::CONF_KEYS::IMG_HEIGHT     = "img_height";
-const std::string NBodySim::CONF_KEYS::PLOT_EVERY     = "plot_every";
-const std::string NBodySim::CONF_KEYS::TIME_STEP      = "time_step";
-const std::string NBodySim::CONF_KEYS::MAX_INITSPEED  = "max_initspeed";
-const std::string NBodySim::CONF_KEYS::MAX_INITMASS   = "max_initmass";
-const std::string NBodySim::CONF_KEYS::MAX_INITCHARGE = "max_initcharge";
-const std::string NBodySim::CONF_KEYS::MIN_INITSPEED  = "min_initspeed";
-const std::string NBodySim::CONF_KEYS::MIN_INITMASS   = "min_initmass";
-const std::string NBodySim::CONF_KEYS::MIN_INITCHARGE = "min_initcharge";
-const std::string NBodySim::CONF_KEYS::SEED           = "rand_seed";
-const std::string NBodySim::CONF_KEYS::IMG_PREFIX     = "img_prefix";
-const std::string NBodySim::CONF_KEYS::DUMP_FILE      = "dump_file";
-
+void
+NBodySim::register_signal(int signum)
+{
+    signal(signum, NBodySim::signal_handler);
+}
 
 template <class ForwardIterator>
 void
@@ -61,129 +115,122 @@ NBodySim::signal_handler(int signum)
     NBodySim::interrupted = signum;
 }
 
-
 NBodySim::NBodySim(unsigned int n_particles,
-                   unsigned int n_steps,
-                   unsigned int seed)
-: m_n_particles(n_particles),
-  m_n_steps(n_steps),
-  m_img_width(800),
-  m_img_height(600),
-  m_plot_every(10),
-  m_seed(seed),
-  m_time_step(0.001f),
-  m_max_initspeed(0.0f),
-  m_max_initmass(1000.0f),
-  m_max_initcharge(1000.0f),
-  m_min_initspeed(0.0f),
-  m_min_initmass(1e-6f), //cannot be zero
-  m_min_initcharge(-1000.0f)
+                   unsigned int n_steps)
 {
-    init_arrays();
-}
+    load_default_settings();
+    m_n_particles = n_particles;
+    m_n_steps = n_steps;
 
-const char * trimchars = " \t\n\r\f\v\"";
-
-static inline std::string &
-rtrim(std::string& s, const char * t = trimchars)
-{
-    s.erase(s.find_last_not_of(t) + 1);
-    return s;
-}
-
-static inline std::string &
-ltrim(std::string& s, const char * t = trimchars)
-{
-    s.erase(0, s.find_first_not_of(t));
-    return s;
-}
-
-static inline std::string &
-trim(std::string & s, const char * t = trimchars)
-{
-    return ltrim(rtrim(s, t), t);
+    initialize();
 }
 
 NBodySim::NBodySim(std::istream & s)
-: NBodySim()
 {
+    load_default_settings();
     load_settings(s);
-    init_arrays();
+
+    initialize();
 }
 
-std::istream &
+void
+NBodySim::load_default_settings()
+{
+    m_n_particles = 0;
+    m_n_steps = 0;
+    m_img_width = 800;
+    m_img_height = 600;
+    m_plot_every = 10;
+    m_seed = time(nullptr);
+
+    m_time_step = 0.001f;
+    m_max_initspeed = 0.0f;
+    m_max_initmass = 1000.0f;
+    m_max_initcharge = 1000.0f;
+    m_min_initspeed = 0.0f;
+    m_min_initmass = 1e-6f; //cannot be zero
+    m_min_initcharge = -1000.0f;
+}
+
+bool
 NBodySim::load_settings(std::istream & s)
 {
     std::string line;
+
     try {
         while (std::getline(s, line)) {
-            if (!line.empty() && line[0] == '#') continue; //skip comments
+            if(line.empty() || line[0] == '#')
+                // skip empty lines and comments
+                continue;
 
             std::istringstream iss(line);
-            std::string key;
+            std::string key, value;
 
-            if (std::getline(iss, key, '=')) {
-                trim(key);
-                std::string value;
-                if (std::getline(iss, value)) {
-                    trim(value);
+            if(!std::getline(iss, key, '=') ||
+               !std::getline(iss, value))
+                continue;
 
-                    try {
-                        if (key == CONF_KEYS::N_PARTICLES) {
-                            m_n_particles = std::stoul(value);
-                        } else if (key == CONF_KEYS::N_STEPS) {
-                            m_n_steps = std::stoul(value);
-                        } else if (key == CONF_KEYS::IMG_WIDTH) {
-                            m_img_width = std::stoul(value);
-                        } else if (key == CONF_KEYS::IMG_HEIGHT) {
-                            m_img_height = std::stoul(value);
-                        } else if (key == CONF_KEYS::PLOT_EVERY) {
-                            m_plot_every = std::stoul(value);
-                        } else if (key == CONF_KEYS::TIME_STEP) {
-                            m_time_step = std::stof(value);
-                        } else if (key == CONF_KEYS::MAX_INITSPEED) {
-                            m_max_initspeed = std::stof(value);
-                        } else if (key == CONF_KEYS::MAX_INITMASS) {
-                            m_max_initmass = std::stof(value);
-                        } else if (key == CONF_KEYS::MAX_INITCHARGE) {
-                            m_max_initcharge = std::stof(value);
-                        } else if (key == CONF_KEYS::MIN_INITSPEED) {
-                            m_min_initspeed = std::stof(value);
-                        } else if (key == CONF_KEYS::MIN_INITMASS) {
-                            m_min_initmass = std::stof(value);
-                        } else if (key == CONF_KEYS::MIN_INITCHARGE) {
-                            m_min_initcharge = std::stof(value);
-                        } else if (key == CONF_KEYS::SEED) {
-                            m_seed = std::stoul(value);
-                        } else if (key == CONF_KEYS::IMG_PREFIX) {
-                            m_img_prefix = value;
-                        } else if (key == CONF_KEYS::DUMP_FILE) {
-                            m_dumpfile = value;
-                        } else {
-                            std::cerr << "Ignoring unknown key: " << key << " = " << value << std::endl;
-                        }
-                    } catch (std::exception & ex) {
-                        std::cout << "error" << std::endl;
-                        std::cerr << "Could not use " << key << " = " << value
-                                  << " pair, because " << value << " is not a valid value." << std::endl;
-                    }
+            trim(key);
+            trim(value);
+
+            try {
+                if (key == CONF_KEYS::N_PARTICLES) {
+                    m_n_particles = std::stoul(value);
+                } else if (key == CONF_KEYS::N_STEPS) {
+                    m_n_steps = std::stoul(value);
+                } else if (key == CONF_KEYS::IMG_WIDTH) {
+                    m_img_width = std::stoul(value);
+                } else if (key == CONF_KEYS::IMG_HEIGHT) {
+                    m_img_height = std::stoul(value);
+                } else if (key == CONF_KEYS::PLOT_EVERY) {
+                    m_plot_every = std::stoul(value);
+                } else if (key == CONF_KEYS::TIME_STEP) {
+                    m_time_step = std::stof(value);
+                } else if (key == CONF_KEYS::MAX_INITSPEED) {
+                    m_max_initspeed = std::stof(value);
+                } else if (key == CONF_KEYS::MAX_INITMASS) {
+                    m_max_initmass = std::stof(value);
+                } else if (key == CONF_KEYS::MAX_INITCHARGE) {
+                    m_max_initcharge = std::stof(value);
+                } else if (key == CONF_KEYS::MIN_INITSPEED) {
+                    m_min_initspeed = std::stof(value);
+                } else if (key == CONF_KEYS::MIN_INITMASS) {
+                    m_min_initmass = std::stof(value);
+                } else if (key == CONF_KEYS::MIN_INITCHARGE) {
+                    m_min_initcharge = std::stof(value);
+                } else if (key == CONF_KEYS::SEED) {
+                    m_seed = std::stoul(value);
+                } else if (key == CONF_KEYS::IMG_PREFIX) {
+                    m_img_prefix = value;
+                } else if (key == CONF_KEYS::DUMP_FILE) {
+                    m_dumpfile = value;
+                } else {
+                    std::cerr << "Ignoring unknown key: " << key << " = " << value << std::endl;
                 }
+            } catch (std::exception & ex) {
+                std::cout << "error" << std::endl;
+                std::cerr << "Could not use " << key << " = " << value
+                          << " pair, because " << value << " is not a valid value." << std::endl;
             }
         }
     } catch (std::exception & ex) {
-        if (errno != 0) throw ex; // do not throw on EOF
+        if (!s.eof())
+            throw;
     }
 
-    return s;
+    return s || s.eof();
 }
 
-std::istream &
+bool
 NBodySim::load_particles(std::istream & s)
 {
     std::string line;
+
     try {
         for (unsigned int i = 0; i < m_n_particles && std::getline(s, line); ++i) {
-            if (!line.empty() && line[0] == '#') continue; //skip comments
+            if(line.empty() || line[0] == '#')
+                // skip empty lines and comments
+                continue;
 
             std::istringstream iss(line);
             iss >> m_x[i]
@@ -196,19 +243,19 @@ NBodySim::load_particles(std::istream & s)
                 >> m_q[i];
         }
     } catch (std::exception & ex) {
-        if (errno != 0) throw ex; // do not throw on EOF
+        if (!s.eof())
+            throw;
     }
 
-    return s;
+    return s || s.eof();
 }
 
-std::ostream &
+bool
 NBodySim::dump_particles(std::ostream & s) const
 {
     s << "#x\ty\txnext\tynext\tvelx\tvely\tmass\tcharge" << std::endl;
 
-    s << std::setprecision(10);
-    s << std::fixed;
+    s << std::setprecision(10) << std::fixed;
 
     for (unsigned int i = 0; i < m_n_particles; ++i) {
         s << m_x[i]  << '\t'
@@ -226,7 +273,7 @@ NBodySim::dump_particles(std::ostream & s) const
 }
 
 void
-NBodySim::init_arrays()
+NBodySim::initialize()
 {
     m_x.resize(m_n_particles);
     m_y.resize(m_n_particles);
@@ -239,13 +286,13 @@ NBodySim::init_arrays()
 
     srand(m_seed);
 
-    if (m_n_particles != 0) {
-        NBodySim::init_array(m_x.begin(),  m_x.end(),  0,                m_img_width - 1);
-        NBodySim::init_array(m_y.begin(),  m_y.end(),  0,                m_img_height - 1);
-        NBodySim::init_array(m_vx.begin(), m_vx.end(), m_min_initspeed,  m_max_initspeed);
-        NBodySim::init_array(m_vy.begin(), m_vy.end(), m_min_initspeed,  m_max_initspeed);
-        NBodySim::init_array(m_m.begin(),  m_m.end(),  m_min_initmass,   m_max_initmass);
-        NBodySim::init_array(m_q.begin(),  m_q.end(),  m_min_initcharge, m_max_initcharge);
+    if (0 < m_n_particles) {
+        init_array(m_x.begin(),  m_x.end(),  0,                m_img_width - 1);
+        init_array(m_y.begin(),  m_y.end(),  0,                m_img_height - 1);
+        init_array(m_vx.begin(), m_vx.end(), m_min_initspeed,  m_max_initspeed);
+        init_array(m_vy.begin(), m_vy.end(), m_min_initspeed,  m_max_initspeed);
+        init_array(m_m.begin(),  m_m.end(),  m_min_initmass,   m_max_initmass);
+        init_array(m_q.begin(),  m_q.end(),  m_min_initcharge, m_max_initcharge);
     }
 }
 
@@ -418,42 +465,21 @@ NBodySim::print_status(unsigned int step) const
               << std::flush;
 }
 
-void
-NBodySim::register_signal(int signum)
-{
-    signal(signum, NBodySim::signal_handler);
-}
-
-template <class T>
-static inline void
-print_aligned(std::ostream & os,
-                   const std::string & s,
-                   const T & val)
-{
-    static const int w = 25;
-    static const char f = ' ';
-    os << s << '=' << std::setfill(f) << std::setw(w - s.length()) << val << std::endl;
-}
-
-std::ostream &
-operator<<(std::ostream & os, const NBodySim & s)
-{
-       print_aligned(os, NBodySim::CONF_KEYS::N_PARTICLES,    s.m_n_particles);
-       print_aligned(os, NBodySim::CONF_KEYS::N_STEPS,        s.m_n_steps);
-#ifdef VISUAL
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_WIDTH,      s.m_img_width);
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_HEIGHT,     s.m_img_height);
-       print_aligned(os, NBodySim::CONF_KEYS::PLOT_EVERY,     s.m_plot_every);
-       print_aligned(os, NBodySim::CONF_KEYS::TIME_STEP,      s.m_time_step);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITSPEED,  s.m_max_initspeed);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITMASS,   s.m_max_initmass);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITCHARGE, s.m_max_initcharge);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITSPEED,  s.m_min_initspeed);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITMASS,   s.m_min_initmass);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITCHARGE, s.m_min_initcharge);
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
-#endif
-       print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
-       print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
-    return os;
-}
+/*************************************************************************/
+/* NBodySim::CONF_KEYS                                                   */
+/*************************************************************************/
+const std::string NBodySim::CONF_KEYS::N_PARTICLES    = "n_particles";
+const std::string NBodySim::CONF_KEYS::N_STEPS        = "n_steps";
+const std::string NBodySim::CONF_KEYS::IMG_WIDTH      = "img_width";
+const std::string NBodySim::CONF_KEYS::IMG_HEIGHT     = "img_height";
+const std::string NBodySim::CONF_KEYS::PLOT_EVERY     = "plot_every";
+const std::string NBodySim::CONF_KEYS::TIME_STEP      = "time_step";
+const std::string NBodySim::CONF_KEYS::MAX_INITSPEED  = "max_initspeed";
+const std::string NBodySim::CONF_KEYS::MAX_INITMASS   = "max_initmass";
+const std::string NBodySim::CONF_KEYS::MAX_INITCHARGE = "max_initcharge";
+const std::string NBodySim::CONF_KEYS::MIN_INITSPEED  = "min_initspeed";
+const std::string NBodySim::CONF_KEYS::MIN_INITMASS   = "min_initmass";
+const std::string NBodySim::CONF_KEYS::MIN_INITCHARGE = "min_initcharge";
+const std::string NBodySim::CONF_KEYS::SEED           = "rand_seed";
+const std::string NBodySim::CONF_KEYS::IMG_PREFIX     = "img_prefix";
+const std::string NBodySim::CONF_KEYS::DUMP_FILE      = "dump_file";

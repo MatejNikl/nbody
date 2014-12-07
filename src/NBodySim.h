@@ -6,7 +6,27 @@
 #include <vector>
 
 class NBodySim {
+    friend std::ostream& operator<<(std::ostream& os, const NBodySim& s);
+
 public:
+    static void register_signal(int signum);
+
+    NBodySim(unsigned int n_particles,
+             unsigned int n_steps);
+    NBodySim(std::istream & s);
+
+    void load_default_settings();
+    bool load_settings(std::istream & s);
+
+    bool load_particles(std::istream & s);
+    bool dump_particles(std::ostream & s) const;
+
+    void initialize();
+    void run_simulation();
+    void save_image(unsigned int seq) const;
+    void print_status(unsigned int step) const;
+
+private:
     struct CONF_KEYS {
         static const std::string N_PARTICLES;
         static const std::string N_STEPS;
@@ -24,7 +44,14 @@ public:
         static const std::string IMG_PREFIX;
         static const std::string DUMP_FILE;
     };
-private:
+
+    template <class ForwardIterator>
+    static void init_array(ForwardIterator first,
+                           ForwardIterator last,
+                           float min,
+                           float max);
+    static void signal_handler(int signum);
+
     unsigned int m_n_particles;
     unsigned int m_n_steps;
     unsigned int m_img_width;
@@ -53,33 +80,6 @@ private:
     std::string m_dumpfile;
 
     static volatile bool interrupted;
-
-
-    template <class ForwardIterator>
-    static void init_array(ForwardIterator first,
-                           ForwardIterator last,
-                           float min,
-                           float max);
-    static void signal_handler(int signum);
-
-public:
-
-    NBodySim(unsigned int n_particles = 0,
-             unsigned int n_steps = 0,
-             unsigned int seed = time(nullptr));
-    NBodySim(std::istream & s);
-
-    std::istream & load_settings(std::istream & s);
-    std::istream & load_particles(std::istream & s);
-    std::ostream & dump_particles(std::ostream & s) const;
-    void init_arrays();
-    void run_simulation();
-    void save_image(unsigned int seq) const;
-    void print_status(unsigned int step) const;
-
-    static void register_signal(int signum);
-
-    friend std::ostream & operator<<(std::ostream & os, const NBodySim & s);
 };
 
 #endif //NBODY_NBODYSIM_H
