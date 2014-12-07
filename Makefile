@@ -11,6 +11,11 @@ OBJS     := $(addprefix $(BUILD)/,$(notdir $(SRCS:.cpp=.o)))
 VOBJS    := $(addprefix $(BUILD)/v_,$(notdir $(SRCS:.cpp=.o)))
 DEPS     := $(OBJS:.o=.d) $(VOBJS:.o=.d)
 
+TEST     := test
+REF_CONF := $(TEST)/rconfig.txt
+REF_IN   := $(TEST)/rin.txt
+REF_OUT  := $(TEST)/rout.txt
+TEST_OUT := $(TEST)/out.txt
 
 perf performance: $(BIN)
 vis visual: $(VBIN)
@@ -41,4 +46,9 @@ clean:
 run: $(BIN)
 	./$(BIN) 1000 1000
 
-.PHONY: perf performance vis visual all clean run
+test: $(BIN)
+	./$(BIN) $(REF_CONF) $(REF_IN)
+	diff $(REF_OUT) $(TEST_OUT)
+
+
+.PHONY: perf performance vis visual all clean run test
