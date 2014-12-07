@@ -397,18 +397,23 @@ NBodySim::run_simulation()
 
 
     if (!m_dumpfile.empty()) {
-        std::ofstream f;
-        f.exceptions(std::ios::failbit | std::ios::badbit);
+        if (m_dumpfile == "-") {
+            std::cout << "Dumping particles to stdout:" << std::endl;
+            dump_particles(std::cout);
+        } else {
+            std::ofstream f;
+            f.exceptions(std::ios::failbit | std::ios::badbit);
 
-        try {
-            std::cout << "Dumping particles to file '" << m_dumpfile << "'..." << std::flush;
-            f.open(m_dumpfile);
-            dump_particles(f);
-            f.close();
-            std::cout << "success" << std::endl;
-        } catch (std::exception & ex) {
-            std::cout << "error" << std::endl;
-            std::cerr << "Reason: " << strerror(errno) << std::endl;
+            try {
+                std::cout << "Dumping particles to file '" << m_dumpfile << "'..." << std::flush;
+                f.open(m_dumpfile);
+                dump_particles(f);
+                f.close();
+                std::cout << "success" << std::endl;
+            } catch (std::exception & ex) {
+                std::cout << "error" << std::endl;
+                std::cerr << "Reason: " << strerror(errno) << std::endl;
+            }
         }
     }
 }
