@@ -33,6 +33,8 @@ private:
     struct CONF_KEYS {
         static const std::string N_PARTICLES;
         static const std::string N_STEPS;
+        static const std::string SIMULATOR;
+        static const std::string VISUAL;
         static const std::string IMG_WIDTH;
         static const std::string IMG_HEIGHT;
         static const std::string PLOT_EVERY;
@@ -46,7 +48,6 @@ private:
         static const std::string SEED;
         static const std::string IMG_PREFIX;
         static const std::string DUMP_FILE;
-        static const std::string SIMULATOR;
     };
 
     template <class ForwardIterator>
@@ -56,12 +57,18 @@ private:
                            float max);
     static void signal_handler(int signum);
 
-    static bool simulator_callback(void* arg,
-                                   unsigned int step,
-                                   float* x,
-                                   float* y,
-                                   float* vx,
-                                   float* vy);
+    static bool simulator_cb(void* arg,
+                             unsigned int step,
+                             float* x,
+                             float* y,
+                             float* vx,
+                             float* vy);
+    static bool simulator_cb_visual(void* arg,
+                                    unsigned int step,
+                                    float* x,
+                                    float* y,
+                                    float* vx,
+                                    float* vy);
 
     unsigned int m_n_particles;
     unsigned int m_n_steps;
@@ -69,6 +76,8 @@ private:
     unsigned int m_img_height;
     unsigned int m_plot_every;
     unsigned int m_seed;
+
+    bool m_visual;
 
     float m_time_step;
     float m_max_initspeed;
@@ -89,8 +98,8 @@ private:
 
     std::string m_img_prefix;
     std::string m_dumpfile;
-    std::string m_simulator;
 
+    std::string m_simulator;
     simulator_t m_simfun;
 
     static volatile bool interrupted;

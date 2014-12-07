@@ -1,5 +1,6 @@
 n_particles=          1023
 n_steps=              1000
-dump_file=    test/out.txt
 simulator=           naive
+visual=                  0
+dump_file=    test/out.txt
 rand_seed=      1417955887

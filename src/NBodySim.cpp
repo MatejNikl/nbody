@@ -54,24 +54,27 @@ print_aligned(std::ostream & os,
 std::ostream &
 operator<<(std::ostream & os, const NBodySim & s)
 {
-       print_aligned(os, NBodySim::CONF_KEYS::N_PARTICLES,    s.m_n_particles);
-       print_aligned(os, NBodySim::CONF_KEYS::N_STEPS,        s.m_n_steps);
-#ifdef VISUAL
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_WIDTH,      s.m_img_width);
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_HEIGHT,     s.m_img_height);
-       print_aligned(os, NBodySim::CONF_KEYS::PLOT_EVERY,     s.m_plot_every);
-       print_aligned(os, NBodySim::CONF_KEYS::TIME_STEP,      s.m_time_step);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITSPEED,  s.m_max_initspeed);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITMASS,   s.m_max_initmass);
-       print_aligned(os, NBodySim::CONF_KEYS::MAX_INITCHARGE, s.m_max_initcharge);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITSPEED,  s.m_min_initspeed);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITMASS,   s.m_min_initmass);
-       print_aligned(os, NBodySim::CONF_KEYS::MIN_INITCHARGE, s.m_min_initcharge);
-       print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
-#endif
-       print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
-       print_aligned(os, NBodySim::CONF_KEYS::SIMULATOR,      s.m_simulator);
-       print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
+    print_aligned(os, NBodySim::CONF_KEYS::N_PARTICLES,    s.m_n_particles);
+    print_aligned(os, NBodySim::CONF_KEYS::N_STEPS,        s.m_n_steps);
+    print_aligned(os, NBodySim::CONF_KEYS::SIMULATOR,      s.m_simulator);
+    print_aligned(os, NBodySim::CONF_KEYS::VISUAL,         s.m_visual);
+
+    if (s.m_visual) {
+        print_aligned(os, NBodySim::CONF_KEYS::IMG_WIDTH,      s.m_img_width);
+        print_aligned(os, NBodySim::CONF_KEYS::IMG_HEIGHT,     s.m_img_height);
+        print_aligned(os, NBodySim::CONF_KEYS::PLOT_EVERY,     s.m_plot_every);
+        print_aligned(os, NBodySim::CONF_KEYS::TIME_STEP,      s.m_time_step);
+        print_aligned(os, NBodySim::CONF_KEYS::MAX_INITSPEED,  s.m_max_initspeed);
+        print_aligned(os, NBodySim::CONF_KEYS::MAX_INITMASS,   s.m_max_initmass);
+        print_aligned(os, NBodySim::CONF_KEYS::MAX_INITCHARGE, s.m_max_initcharge);
+        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITSPEED,  s.m_min_initspeed);
+        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITMASS,   s.m_min_initmass);
+        print_aligned(os, NBodySim::CONF_KEYS::MIN_INITCHARGE, s.m_min_initcharge);
+        print_aligned(os, NBodySim::CONF_KEYS::IMG_PREFIX,     s.m_img_prefix);
+    }
+
+    print_aligned(os, NBodySim::CONF_KEYS::DUMP_FILE,      s.m_dumpfile);
+    print_aligned(os, NBodySim::CONF_KEYS::SEED,           s.m_seed);
     return os;
 }
 
@@ -115,26 +118,35 @@ NBodySim::signal_handler(int signum)
 }
 
 bool
-NBodySim::simulator_callback(void* arg,
-                             unsigned int step,
-                             float* x,
-                             float* y,
-                             float* vx,
-                             float* vy)
+NBodySim::simulator_cb(void* arg,
+                       unsigned int,
+                       float*,
+                       float*,
+                       float*,
+                       float*)
 {
     NBodySim* self = (NBodySim*)arg;
-
-#ifdef VISUAL
-    if (step % self->m_plot_every == 0) {
-        self->save_image(step / self->m_plot_every);
-    }
-
-    self->print_status(step);
-#endif
 
     std::swap(self->m_x, self->m_xn);
     std::swap(self->m_y, self->m_yn);
     return !NBodySim::interrupted;
+}
+
+bool
+NBodySim::simulator_cb_visual(void* arg,
+                              unsigned int step,
+                              float* x,
+                              float* y,
+                              float* vx,
+                              float* vy)
+{
+    NBodySim* self = (NBodySim*)arg;
+
+    if (step % self->m_plot_every == 0)
+        self->save_image(step / self->m_plot_every);
+
+    self->print_status(step);
+    return simulator_cb(self, step, x, y, vx, vy);
 }
 
 NBodySim::NBodySim(unsigned int n_particles,
@@ -166,6 +178,8 @@ NBodySim::load_default_settings()
     m_img_height = 600;
     m_plot_every = 10;
     m_seed = time(nullptr);
+
+    m_visual = false;
 
     m_time_step = 0.001f;
     m_max_initspeed = 0.0f;
@@ -204,6 +218,10 @@ NBodySim::load_settings(std::istream & s)
                     m_n_particles = std::stoul(value);
                 } else if (key == CONF_KEYS::N_STEPS) {
                     m_n_steps = std::stoul(value);
+                } else if (key == CONF_KEYS::SIMULATOR) {
+                    m_simulator = value;
+                } else if (key == CONF_KEYS::VISUAL) {
+                    m_visual = std::stoul(value);
                 } else if (key == CONF_KEYS::IMG_WIDTH) {
                     m_img_width = std::stoul(value);
                 } else if (key == CONF_KEYS::IMG_HEIGHT) {
@@ -230,8 +248,6 @@ NBodySim::load_settings(std::istream & s)
                     m_img_prefix = value;
                 } else if (key == CONF_KEYS::DUMP_FILE) {
                     m_dumpfile = value;
-                } else if (key == CONF_KEYS::SIMULATOR) {
-                    m_simulator = value;
                 } else {
                     std::cerr << "Ignoring unknown key: " << key << " = " << value << std::endl;
                 }
@@ -342,7 +358,7 @@ NBodySim::run_simulation()
     conf.img_width = m_img_width;
     conf.img_height = m_img_height;
     conf.dt = m_time_step;
-    conf.cb = &NBodySim::simulator_callback;
+    conf.cb = (m_visual ? simulator_cb_visual : simulator_cb);
     conf.cb_arg = this;
 
     simulator_data_t data;
@@ -359,15 +375,15 @@ NBodySim::run_simulation()
     auto begin = std::chrono::steady_clock::now();
     unsigned int step = (*m_simfun)(&conf, &data);
 
-#ifdef VISUAL
-    if (step % m_plot_every == 0) {
-        save_image(step / m_plot_every);
+    if( m_visual ) {
+        if (step % m_plot_every == 0) {
+            save_image(step / m_plot_every);
+        }
+        print_status(step);
+        std::cout << std::endl;
+    } else {
+        std::cout << "Processed: " << step << " steps" << std::endl;
     }
-    print_status(step);
-    std::cout << std::endl;
-#else
-    std::cout << "Processed: " << step << " steps" << std::endl;
-#endif
 
     auto end = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -451,6 +467,8 @@ NBodySim::print_status(unsigned int step) const
 /*************************************************************************/
 const std::string NBodySim::CONF_KEYS::N_PARTICLES    = "n_particles";
 const std::string NBodySim::CONF_KEYS::N_STEPS        = "n_steps";
+const std::string NBodySim::CONF_KEYS::SIMULATOR      = "simulator";
+const std::string NBodySim::CONF_KEYS::VISUAL         = "visual";
 const std::string NBodySim::CONF_KEYS::IMG_WIDTH      = "img_width";
 const std::string NBodySim::CONF_KEYS::IMG_HEIGHT     = "img_height";
 const std::string NBodySim::CONF_KEYS::PLOT_EVERY     = "plot_every";
@@ -464,4 +482,3 @@ const std::string NBodySim::CONF_KEYS::MIN_INITCHARGE = "min_initcharge";
 const std::string NBodySim::CONF_KEYS::SEED           = "rand_seed";
 const std::string NBodySim::CONF_KEYS::IMG_PREFIX     = "img_prefix";
 const std::string NBodySim::CONF_KEYS::DUMP_FILE      = "dump_file";
-const std::string NBodySim::CONF_KEYS::SIMULATOR      = "simulator";
