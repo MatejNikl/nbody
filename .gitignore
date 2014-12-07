@@ -1,4 +1,17 @@
-/build/
+/build/**
 /test/out.txt
 
 /nbody
+.ycm_extra_conf.py
+.ycm_extra_conf.pyc
+
+*.mov
+*.png
+*.bmp
+
+*.aux
+*.log
+*.pdf
+*.eps
+
+*.swp
