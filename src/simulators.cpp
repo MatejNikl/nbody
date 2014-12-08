@@ -867,6 +867,7 @@ simulator_vec_4_0(
     return step;
 }
 
+#ifdef __AVX__
 extern "C" unsigned int
 simulator_vec_8_0(
     const simulator_conf_t* conf,
@@ -963,6 +964,7 @@ simulator_vec_8_0(
 
     return step;
 }
+#endif
 
 extern "C" unsigned int
 simulator_naive(

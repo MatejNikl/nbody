@@ -82,14 +82,19 @@ private:
     float m_min_initmass;
     float m_min_initcharge;
 
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_x;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_y;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_xn;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_yn;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_vx;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_vy;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_m;
-    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_q;
+#ifdef __AVX__
+    typedef __v8sf align_type;
+#else
+    typedef __v4sf align_type;
+#endif
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_x;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_y;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_xn;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_yn;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_vx;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_vy;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_m;
+    std::vector<float, aligned_allocator<float, sizeof(align_type)> > m_q;
 
     std::string m_img_prefix;
     std::string m_dumpfile;
