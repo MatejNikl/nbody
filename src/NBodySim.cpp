@@ -119,11 +119,7 @@ NBodySim::signal_handler(int signum)
 
 bool
 NBodySim::simulator_cb(void* arg,
-                       unsigned int,
-                       float*,
-                       float*,
-                       float*,
-                       float*)
+                       unsigned int)
 {
     NBodySim* self = (NBodySim*)arg;
 
@@ -134,17 +130,18 @@ NBodySim::simulator_cb(void* arg,
 
 bool
 NBodySim::simulator_cb_visual(void* arg,
-                              unsigned int step,
-                              float* x,
-                              float* y,
-                              float* vx,
-                              float* vy)
+                              unsigned int step)
 {
     NBodySim* self = (NBodySim*)arg;
 
     const unsigned int n_particles = self->m_n_particles;
     const unsigned int img_width = self->m_img_width;
     const unsigned int img_height = self->m_img_height;
+
+    float * x = self->m_x.data();
+    float * y = self->m_y.data();
+    float * vx = self->m_vx.data();
+    float * vy = self->m_vy.data();
 
     for (unsigned int i = 0; i < n_particles; ++i) {
         if (x[i] < 0) {
@@ -168,7 +165,7 @@ NBodySim::simulator_cb_visual(void* arg,
         self->save_image(step / self->m_plot_every);
 
     self->print_status(step);
-    return simulator_cb(self, step, x, y, vx, vy);
+    return simulator_cb(self, step);
 }
 
 NBodySim::NBodySim(unsigned int n_particles,

@@ -71,7 +71,7 @@ simulator_naive(
             vy[i] += ay * dt;
         }
 
-        if( !(*cb)(cb_arg, step, xn, yn, vx, vy) )
+        if( !(*cb)(cb_arg, step) )
             break;
 
         std::swap(x, xn);

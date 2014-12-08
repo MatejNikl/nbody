@@ -27,11 +27,7 @@ typedef struct
 
 typedef bool (*simulator_callback_t)(
     void* arg,
-    unsigned int step,
-    float* x,
-    float* y,
-    float* vx,
-    float* vy
+    unsigned int step
     );
 
 typedef struct

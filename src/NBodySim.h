@@ -58,17 +58,9 @@ private:
     static void signal_handler(int signum);
 
     static bool simulator_cb(void* arg,
-                             unsigned int step,
-                             float* x,
-                             float* y,
-                             float* vx,
-                             float* vy);
+                             unsigned int step);
     static bool simulator_cb_visual(void* arg,
-                                    unsigned int step,
-                                    float* x,
-                                    float* y,
-                                    float* vx,
-                                    float* vy);
+                                    unsigned int step);
 
     unsigned int m_n_particles;
     unsigned int m_n_steps;
