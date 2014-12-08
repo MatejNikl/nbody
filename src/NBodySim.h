@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <immintrin.h>
+
+#include "aligned_allocator.hpp"
 #include "simulators.h"
 
 class NBodySim {
@@ -79,14 +82,14 @@ private:
     float m_min_initmass;
     float m_min_initcharge;
 
-    std::vector<float> m_x;
-    std::vector<float> m_y;
-    std::vector<float> m_xn;
-    std::vector<float> m_yn;
-    std::vector<float> m_vx;
-    std::vector<float> m_vy;
-    std::vector<float> m_m;
-    std::vector<float> m_q;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_x;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_y;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_xn;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_yn;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_vx;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_vy;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_m;
+    std::vector<float, aligned_allocator<float, sizeof(__v8sf)> > m_q;
 
     std::string m_img_prefix;
     std::string m_dumpfile;
