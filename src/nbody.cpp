@@ -28,14 +28,13 @@ main(int argc, char *argv[])
 {
     NBodySim * s = nullptr;
 
-
     if (argc == 2 || argc == 3) {
         unsigned int n_particles;
         unsigned int n_steps;
 
         if (argc == 3 && is_integer_only(argv[1], n_particles)
                       && is_integer_only(argv[2], n_steps)) {
-            s = new NBodySim(n_particles, n_steps);
+            s = new NBodySim(n_particles, n_steps, "naive" );
         } else {
             if (!file_exists(argv[1])) return write_default_config(argv[1]);
 
@@ -96,7 +95,7 @@ write_default_config(const std::string & fn)
     try {
         std::cout << "Writing default config to '" << fn << "'..." << std::flush;
         f.open(fn);
-        f << NBodySim(0, 0);
+        f << NBodySim(0, 0, "naive");
         f.close();
         std::cout << "success" << std::endl;
     } catch (const std::ifstream::failure & e) {

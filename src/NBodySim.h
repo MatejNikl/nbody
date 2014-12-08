@@ -5,11 +5,36 @@
 #include <string>
 #include <vector>
 
+#include "simulators.h"
+
 class NBodySim {
+    friend std::ostream& operator<<(std::ostream& os, const NBodySim& s);
+
 public:
+    static void register_signal(int signum);
+
+    NBodySim(unsigned int n_particles,
+             unsigned int n_steps,
+             const std::string& simulator);
+    NBodySim(std::istream & s);
+
+    void load_default_settings();
+    bool load_settings(std::istream & s);
+
+    bool load_particles(std::istream & s);
+    bool dump_particles(std::ostream & s) const;
+
+    void initialize();
+    void run_simulation();
+    void save_image(unsigned int seq) const;
+    void print_status(unsigned int step) const;
+
+private:
     struct CONF_KEYS {
         static const std::string N_PARTICLES;
         static const std::string N_STEPS;
+        static const std::string SIMULATOR;
+        static const std::string VISUAL;
         static const std::string IMG_WIDTH;
         static const std::string IMG_HEIGHT;
         static const std::string PLOT_EVERY;
@@ -24,13 +49,35 @@ public:
         static const std::string IMG_PREFIX;
         static const std::string DUMP_FILE;
     };
-private:
+
+    template <class ForwardIterator>
+    static void init_array(ForwardIterator first,
+                           ForwardIterator last,
+                           float min,
+                           float max);
+    static void signal_handler(int signum);
+
+    static bool simulator_cb(void* arg,
+                             unsigned int step,
+                             float* x,
+                             float* y,
+                             float* vx,
+                             float* vy);
+    static bool simulator_cb_visual(void* arg,
+                                    unsigned int step,
+                                    float* x,
+                                    float* y,
+                                    float* vx,
+                                    float* vy);
+
     unsigned int m_n_particles;
     unsigned int m_n_steps;
     unsigned int m_img_width;
     unsigned int m_img_height;
     unsigned int m_plot_every;
     unsigned int m_seed;
+
+    bool m_visual;
 
     float m_time_step;
     float m_max_initspeed;
@@ -52,34 +99,10 @@ private:
     std::string m_img_prefix;
     std::string m_dumpfile;
 
+    std::string m_simulator;
+    simulator_t m_simfun;
+
     static volatile bool interrupted;
-
-
-    template <class ForwardIterator>
-    static void init_array(ForwardIterator first,
-                           ForwardIterator last,
-                           float min,
-                           float max);
-    static void signal_handler(int signum);
-
-public:
-
-    NBodySim(unsigned int n_particles = 0,
-             unsigned int n_steps = 0,
-             unsigned int seed = time(nullptr));
-    NBodySim(std::istream & s);
-
-    std::istream & load_settings(std::istream & s);
-    std::istream & load_particles(std::istream & s);
-    std::ostream & dump_particles(std::ostream & s) const;
-    void init_arrays();
-    void run_simulation();
-    void save_image(unsigned int seq) const;
-    void print_status(unsigned int step) const;
-
-    static void register_signal(int signum);
-
-    friend std::ostream & operator<<(std::ostream & os, const NBodySim & s);
 };
 
 #endif //NBODY_NBODYSIM_H
