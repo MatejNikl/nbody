@@ -20,6 +20,10 @@ OBJS     := $(addprefix $(BUILD)/,$(notdir $(SRCS:.cpp=.o)))
 VOBJS    := $(addprefix $(BUILD)/v_,$(notdir $(SRCS:.cpp=.o)))
 DEPS     := $(OBJS:.o=.d) $(VOBJS:.o=.d)
 
+# first target is the default one and it should be something reasonable,
+# not the one from included dependencies
+all: $(BIN)
+
 # include compiler-generated dependencies, so obj files get recompiled when
 # included headers change
 -include $(DEPS)
