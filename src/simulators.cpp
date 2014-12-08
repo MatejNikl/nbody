@@ -37,58 +37,6 @@ get_simulator(
     return sim;
 }
 
-bool
-bump_wrapper_cb(
-    void* arg,
-    unsigned int step,
-    float* x,
-    float* y,
-    float* vx,
-    float* vy
-    )
-{
-    simulator_conf_t* conf = (simulator_conf_t*)arg;
-
-    const unsigned int n_particles = conf->n_particles;
-    const unsigned int img_width = conf->img_width;
-    const unsigned int img_height = conf->img_height;
-
-    for (unsigned int i = 0; i < n_particles; ++i) {
-        if (x[i] < 0) {
-            x[i] = -x[i];
-            vx[i] = 0.5f * std::fabs(vx[i]);
-        } else if (x[i] > img_width - 1) {
-            x[i] = 2 * (img_width - 1) - x[i];
-            vx[i] = -0.5f * std::fabs(vx[i]);
-        }
-
-        if (y[i] < 0) {
-            y[i] = -y[i];
-            vy[i] = 0.5f * std::fabs(vy[i]);
-        } else if (y[i] > img_height - 1) {
-            y[i] = 2 * (img_height - 1) - y[i];
-            vy[i] = -0.5f * std::fabs(vy[i]);
-        }
-    }
-
-    return (*conf->cb)(conf->cb_arg, step, x, y, vx, vy);
-}
-
-unsigned int
-bump_wrapper(
-    simulator_t sim,
-    const simulator_conf_t* conf,
-    const simulator_data_t* data
-    )
-{
-    simulator_conf_t bumpconf;
-    memmove( &bumpconf, conf, sizeof(bumpconf) );
-    bumpconf.cb = bump_wrapper_cb;
-    bumpconf.cb_arg = (void*)conf;
-
-    return (*sim)( &bumpconf, data );
-}
-
 extern "C" unsigned int
 simulator_naive(
     const simulator_conf_t* conf,
@@ -133,11 +81,3 @@ simulator_naive(
     return step;
 }
 
-extern "C" unsigned int
-simulator_naive_bump(
-    const simulator_conf_t* conf,
-    const simulator_data_t* data
-    )
-{
-    return bump_wrapper( simulator_naive, conf, data );
-}

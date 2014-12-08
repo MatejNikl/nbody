@@ -142,6 +142,28 @@ NBodySim::simulator_cb_visual(void* arg,
 {
     NBodySim* self = (NBodySim*)arg;
 
+    const unsigned int n_particles = self->m_n_particles;
+    const unsigned int img_width = self->m_img_width;
+    const unsigned int img_height = self->m_img_height;
+
+    for (unsigned int i = 0; i < n_particles; ++i) {
+        if (x[i] < 0) {
+            x[i] = -x[i];
+            vx[i] = 0.5f * std::fabs(vx[i]);
+        } else if (x[i] > img_width - 1) {
+            x[i] = 2 * (img_width - 1) - x[i];
+            vx[i] = -0.5f * std::fabs(vx[i]);
+        }
+
+        if (y[i] < 0) {
+            y[i] = -y[i];
+            vy[i] = 0.5f * std::fabs(vy[i]);
+        } else if (y[i] > img_height - 1) {
+            y[i] = 2 * (img_height - 1) - y[i];
+            vy[i] = -0.5f * std::fabs(vy[i]);
+        }
+    }
+
     if (step % self->m_plot_every == 0)
         self->save_image(step / self->m_plot_every);
 
