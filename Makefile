@@ -49,4 +49,7 @@ test: $(BIN)
 	./$(BIN) $(REF_CONF) $(REF_IN)
 	diff -u $(REF_OUT) $(TEST_OUT)
 
-.PHONY: all clean run test
+showsims: $(BIN)
+	nm -C $(BIN) | sed -n 's/.*\ssimulator_\(.*\)/\1/p'
+
+.PHONY: all clean run test showsims
