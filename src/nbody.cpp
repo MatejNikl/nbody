@@ -28,13 +28,17 @@ main(int argc, char *argv[])
 {
     NBodySim * s = nullptr;
 
-    if (argc == 2 || argc == 3) {
+    if (argc == 2 || argc == 4) {
         unsigned int n_particles;
         unsigned int n_steps;
 
-        if (argc == 3 && is_integer_only(argv[1], n_particles)
-                      && is_integer_only(argv[2], n_steps)) {
-            s = new NBodySim(n_particles, n_steps, "naive" );
+        if (argc == 4) {
+                if (is_integer_only(argv[1], n_particles) && is_integer_only(argv[2], n_steps)) {
+                s = new NBodySim(n_particles, n_steps, argv[3] );
+           } else {
+                print_help(*argv);
+                return EXIT_FAILURE;
+           }
         } else {
             if (!file_exists(argv[1])) return write_default_config(argv[1]);
 
@@ -111,8 +115,8 @@ void
 print_help(const char * runcmnd)
 {
     std::cout << "Usage:" << std::endl
-              << runcmnd << " #particles #steps" << std::endl
-              << runcmnd << " non-existant file (writes default one)" << std::endl
+              << runcmnd << " #particles #steps simulator" << std::endl
+              << runcmnd << " non-existant_file (writes default one)" << std::endl
               << runcmnd << " settings_file [particles_file]" << std::endl;
 }
 
