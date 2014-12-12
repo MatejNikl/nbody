@@ -28,7 +28,7 @@ main(int argc, char *argv[])
 {
     NBodySim * s = nullptr;
 
-    if (argc == 2 || argc == 4) {
+    if (2 <= argc && argc <= 4) {
         unsigned int n_particles;
         unsigned int n_steps;
 
