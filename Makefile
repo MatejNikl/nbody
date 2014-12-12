@@ -50,6 +50,6 @@ test: $(BIN)
 	diff -u $(REF_OUT) $(TEST_OUT)
 
 showsims: $(BIN)
-	@nm -C $(BIN) | sed -n 's/.*\ssimulator_\(.*\)/\1/p'
+	@readelf -s $(BIN) | sed -n 's/.*\ssimulator_\(\w\+\)$$/\1/p' | sort -u
 
 .PHONY: all clean run test showsims
