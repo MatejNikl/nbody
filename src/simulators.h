@@ -1,6 +1,8 @@
 #ifndef NBODY_SIMULATORS_H
 #define NBODY_SIMULATORS_H
 
+#define OMP_SCHEDULE static
+
 typedef struct
 {
     float* x;

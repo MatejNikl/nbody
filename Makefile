@@ -2,7 +2,7 @@ CXX      := g++
 BIN      := nbody
 
 CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra -march=native -mtune=native
-CXXFLAGS += -rdynamic -ldl#-DACCURATE_VEC
+CXXFLAGS += -rdynamic -ldl -fopenmp -DACCURATE_VEC
 
 BUILD    := build
 SRC      := src

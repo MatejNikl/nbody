@@ -34,6 +34,7 @@ get_simulator(
 
     return sim;
 }
+
 extern "C" unsigned int
 simulator_unroll_2_0(
     const simulator_conf_t* conf,
@@ -48,6 +49,8 @@ simulator_unroll_2_0(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 1; i += 2) {
             float ax_0 = 0.0f;
             float ax_1 = 0.0f;
@@ -138,6 +141,8 @@ simulator_unroll_4_0(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 3; i += 4) {
             float ax_0 = 0.0f;
             float ax_1 = 0.0f;
@@ -251,6 +256,8 @@ simulator_unroll_8_0(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 7; i += 8) {
             float ax_0 = 0.0f;
             float ax_1 = 0.0f;
@@ -411,6 +418,8 @@ simulator_unroll_0_2(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
@@ -479,6 +488,8 @@ simulator_unroll_0_4(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
@@ -558,6 +569,8 @@ simulator_unroll_0_8(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
@@ -660,6 +673,8 @@ simulator_unroll_2_2(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 1; i += 2) {
             float ax_0 = 0.0f;
             float ax_1 = 0.0f;
@@ -791,6 +806,8 @@ simulator_vec_4_0_4(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 3; i += 4) {
             __v4sf ax = { 0.0f, 0.0f, 0.0f, 0.0f };
             __v4sf ay = ax;
@@ -889,6 +906,8 @@ simulator_vec_8_0_4(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 7; i += 8) {
             __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
             __v4sf ay_0 = ax_0;
@@ -1007,6 +1026,8 @@ simulator_vec_8_0_8(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 7; i += 8) {
             __v8sf ax = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
             __v8sf ay = ax;
@@ -1106,8 +1127,9 @@ simulator_vec_12_0_4(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
-        unsigned int i;
-        for (i = 0; i < n_particles - 11; i += 12) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
+        for (unsigned int i = 0; i < n_particles - 11; i += 12) {
             __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
             __v4sf ay_0 = ax_0;
             __v4sf ax_4 = ax_0;
@@ -1189,7 +1211,7 @@ simulator_vec_12_0_4(
             *(__v4sf *)(vy + i + 8) = vyi_8 + ay_8 * vdt;
         }
 
-        for ( ; i < n_particles; ++i) {
+        for (unsigned int i = n_particles - (n_particles % 12); i < n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
 
@@ -1245,6 +1267,8 @@ simulator_vec_16_0_4(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 15; i += 16) {
             __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
             __v4sf ay_0 = ax_0;
@@ -1403,6 +1427,8 @@ simulator_vec_16_0_8(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 15; i += 16) {
             __v8sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
             __v8sf ay_0 = ax_0;
@@ -1515,6 +1541,8 @@ simulator_naive(
 
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles; ++i) {
             float ax = 0.0f;
             float ay = 0.0f;
