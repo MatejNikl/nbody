@@ -128,6 +128,101 @@ simulator_unroll_2_0(
 }
 
 extern "C" unsigned int
+simulator_unroll_2_0_jpar(
+    const simulator_conf_t* conf,
+    const simulator_data_t* data
+    )
+{
+    LOAD_CONF( conf );
+    LOAD_DATA( data );
+
+    const float half = 0.5f;
+    const float dt2 = dt * dt;
+
+    unsigned int step;
+    for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
+        for (unsigned int i = 0; i < n_particles - 1; i += 2) {
+            float ax_0 = 0.0f;
+            float ax_1 = 0.0f;
+
+            float ay_0 = 0.0f;
+            float ay_1 = 0.0f;
+
+#       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(i, x, y, xn, yn) reduction(+:ax_0,ax_1,ay_0,ay_1)
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                float dx_0 = x[j] - x[i + 0];
+                float dx_1 = x[j] - x[i + 1];
+
+                float dy_0 = y[j] - y[i + 0];
+                float dy_1 = y[j] - y[i + 1];
+
+                float invr_0 = 1.0f / std::sqrt(dx_0 * dx_0 + dy_0 * dy_0 + half);
+                float invr_1 = 1.0f / std::sqrt(dx_1 * dx_1 + dy_1 * dy_1 + half);
+
+                float coef_0 = (m[j] - q[i + 0] * q[j] / m[i + 0]) * invr_0 * invr_0 * invr_0;
+                float coef_1 = (m[j] - q[i + 1] * q[j] / m[i + 1]) * invr_1 * invr_1 * invr_1;
+
+                ax_0 += coef_0 * dx_0; /* accumulate the acceleration from gravitational attraction */
+                ax_1 += coef_1 * dx_1;
+
+                ay_0 += coef_0 * dy_0;
+                ay_1 += coef_1 * dy_1;
+            }
+
+            xn[i + 0] = x[i + 0] + vx[i + 0] * dt + half * ax_0 * dt2; /* update position of particle "i" */
+            xn[i + 1] = x[i + 1] + vx[i + 1] * dt + half * ax_1 * dt2;
+
+            yn[i + 0] = y[i + 0] + vy[i + 0] * dt + half * ay_0 * dt2;
+            yn[i + 1] = y[i + 1] + vy[i + 1] * dt + half * ay_1 * dt2;
+
+            vx[i + 0] += ax_0 * dt; /* update velocity of particle "i" */
+            vx[i + 1] += ax_1 * dt;
+
+            vy[i + 0] += ay_0 * dt;
+            vy[i + 1] += ay_1 * dt;
+        }
+
+        if (n_particles & 0x1) {
+            const unsigned int end = n_particles - 1;
+
+            float ax = 0.0f;
+            float ay = 0.0f;
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const float dx = x[j] - x[end];
+                const float dy = y[j] - y[end];
+                const float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
+                const float coef = (m[j] - q[end] * q[j] / m[end]) * invr * invr * invr;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
+                ay += coef * dy;
+            }
+
+            /* update position of particle "end" */
+            xn[end] = x[end] + vx[end] * dt + half * ax * dt2;
+            yn[end] = y[end] + vy[end] * dt + half * ay * dt2;
+
+            /* update velocity of particle "end" */
+            vx[end] += ax * dt;
+            vy[end] += ay * dt;
+        }
+
+        if( !(*cb)(cb_arg, step) )
+            break;
+
+        std::swap(x, xn);
+        std::swap(y, yn);
+    }
+
+    return step;
+}
+
+extern "C" unsigned int
 simulator_unroll_4_0(
     const simulator_conf_t* conf,
     const simulator_data_t* data
@@ -1128,6 +1223,425 @@ simulator_vec_12_0_4(
     unsigned int step;
     for (step = 0; step < n_steps; ++step) {
 #       pragma omp parallel for schedule(OMP_SCHEDULE) default(none) \
+            firstprivate(x, y, xn, yn)
+        for (unsigned int i = 0; i < n_particles - 11; i += 12) {
+            __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
+            __v4sf ay_0 = ax_0;
+            __v4sf ax_4 = ax_0;
+            __v4sf ay_4 = ax_0;
+            __v4sf ax_8 = ax_0;
+            __v4sf ay_8 = ax_0;
+
+            const __v4sf xi_0 = *(__v4sf *)(x + i + 0);
+            const __v4sf yi_0 = *(__v4sf *)(y + i + 0);
+            const __v4sf mi_0 = *(__v4sf *)(m + i + 0);
+            const __v4sf qi_0 = *(__v4sf *)(q + i + 0);
+
+            const __v4sf xi_4 = *(__v4sf *)(x + i + 4);
+            const __v4sf yi_4 = *(__v4sf *)(y + i + 4);
+            const __v4sf mi_4 = *(__v4sf *)(m + i + 4);
+            const __v4sf qi_4 = *(__v4sf *)(q + i + 4);
+
+            const __v4sf xi_8 = *(__v4sf *)(x + i + 8);
+            const __v4sf yi_8 = *(__v4sf *)(y + i + 8);
+            const __v4sf mi_8 = *(__v4sf *)(m + i + 8);
+            const __v4sf qi_8 = *(__v4sf *)(q + i + 8);
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const __v4sf xj = { x[j], x[j], x[j], x[j] };
+                const __v4sf yj = { y[j], y[j], y[j], y[j] };
+                const __v4sf mj = { m[j], m[j], m[j], m[j] };
+                const __v4sf qj = { q[j], q[j], q[j], q[j] };
+
+                const __v4sf dx_0 = xj - xi_0;
+                const __v4sf dy_0 = yj - yi_0;
+                const __v4sf dx_4 = xj - xi_4;
+                const __v4sf dy_4 = yj - yi_4;
+                const __v4sf dx_8 = xj - xi_8;
+                const __v4sf dy_8 = yj - yi_8;
+
+#               ifdef ACCURATE_VEC
+                const __v4sf invr_0 = vone / _mm_sqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = vone / _mm_sqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = vone / _mm_sqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               else
+                const __v4sf invr_0 = _mm_rsqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = _mm_rsqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = _mm_rsqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               endif
+                const __v4sf coef_0 = (mj - qi_0 * qj / mi_0) * invr_0 * invr_0 * invr_0;
+                const __v4sf coef_4 = (mj - qi_4 * qj / mi_4) * invr_4 * invr_4 * invr_4;
+                const __v4sf coef_8 = (mj - qi_8 * qj / mi_8) * invr_8 * invr_8 * invr_8;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax_0 += coef_0 * dx_0;
+                ay_0 += coef_0 * dy_0;
+                ax_4 += coef_4 * dx_4;
+                ay_4 += coef_4 * dy_4;
+                ax_8 += coef_8 * dx_8;
+                ay_8 += coef_8 * dy_8;
+            }
+
+            const __v4sf vxi_0 = *(__v4sf *)(vx + i + 0);
+            const __v4sf vyi_0 = *(__v4sf *)(vy + i + 0);
+            const __v4sf vxi_4 = *(__v4sf *)(vx + i + 4);
+            const __v4sf vyi_4 = *(__v4sf *)(vy + i + 4);
+            const __v4sf vxi_8 = *(__v4sf *)(vx + i + 8);
+            const __v4sf vyi_8 = *(__v4sf *)(vy + i + 8);
+
+            /* update position of particle "i" */
+            *(__v4sf *)(xn + i + 0) = xi_0 + vxi_0 * vdt + vhalf * ax_0 * vdt2;
+            *(__v4sf *)(yn + i + 0) = yi_0 + vyi_0 * vdt + vhalf * ay_0 * vdt2;
+            *(__v4sf *)(xn + i + 4) = xi_4 + vxi_4 * vdt + vhalf * ax_4 * vdt2;
+            *(__v4sf *)(yn + i + 4) = yi_4 + vyi_4 * vdt + vhalf * ay_4 * vdt2;
+            *(__v4sf *)(xn + i + 8) = xi_8 + vxi_8 * vdt + vhalf * ax_8 * vdt2;
+            *(__v4sf *)(yn + i + 8) = yi_8 + vyi_8 * vdt + vhalf * ay_8 * vdt2;
+
+            /* update velocity of particle "i" */
+            *(__v4sf *)(vx + i + 0) = vxi_0 + ax_0 * vdt;
+            *(__v4sf *)(vy + i + 0) = vyi_0 + ay_0 * vdt;
+            *(__v4sf *)(vx + i + 4) = vxi_4 + ax_4 * vdt;
+            *(__v4sf *)(vy + i + 4) = vyi_4 + ay_4 * vdt;
+            *(__v4sf *)(vx + i + 8) = vxi_8 + ax_8 * vdt;
+            *(__v4sf *)(vy + i + 8) = vyi_8 + ay_8 * vdt;
+        }
+
+        for (unsigned int i = n_particles - (n_particles % 12); i < n_particles; ++i) {
+            float ax = 0.0f;
+            float ay = 0.0f;
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const float dx = x[j] - x[i];
+                const float dy = y[j] - y[i];
+                const float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
+                const float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
+                ay += coef * dy;
+            }
+
+            /* update position of particle "i" */
+            xn[i] = x[i] + vx[i] * dt + half * ax * dt2;
+            yn[i] = y[i] + vy[i] * dt + half * ay * dt2;
+
+            /* update velocity of particle "i" */
+            vx[i] += ax * dt;
+            vy[i] += ay * dt;
+        }
+
+        if( !(*cb)(cb_arg, step) )
+            break;
+
+        std::swap(x, xn);
+        std::swap(y, yn);
+    }
+
+    return step;
+}
+
+extern "C" unsigned int
+simulator_vec_12_0_4_shared(
+    const simulator_conf_t* conf,
+    const simulator_data_t* data
+    )
+{
+    LOAD_CONF( conf );
+    LOAD_DATA( data );
+
+    const float half = 0.5f;
+    const float dt2 = dt * dt;
+
+#   ifdef ACCURATE_VEC
+    const __v4sf vone  = { 1.0f, 1.0f, 1.0f, 1.0f };
+#   endif
+
+    const __v4sf vhalf = { half, half, half, half };
+    const __v4sf vdt = { dt, dt, dt, dt };
+    const __v4sf vdt2 = vdt * vdt;
+
+    unsigned int step;
+    for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(OMP_SCHEDULE)
+        for (unsigned int i = 0; i < n_particles - 11; i += 12) {
+            __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
+            __v4sf ay_0 = ax_0;
+            __v4sf ax_4 = ax_0;
+            __v4sf ay_4 = ax_0;
+            __v4sf ax_8 = ax_0;
+            __v4sf ay_8 = ax_0;
+
+            const __v4sf xi_0 = *(__v4sf *)(x + i + 0);
+            const __v4sf yi_0 = *(__v4sf *)(y + i + 0);
+            const __v4sf mi_0 = *(__v4sf *)(m + i + 0);
+            const __v4sf qi_0 = *(__v4sf *)(q + i + 0);
+
+            const __v4sf xi_4 = *(__v4sf *)(x + i + 4);
+            const __v4sf yi_4 = *(__v4sf *)(y + i + 4);
+            const __v4sf mi_4 = *(__v4sf *)(m + i + 4);
+            const __v4sf qi_4 = *(__v4sf *)(q + i + 4);
+
+            const __v4sf xi_8 = *(__v4sf *)(x + i + 8);
+            const __v4sf yi_8 = *(__v4sf *)(y + i + 8);
+            const __v4sf mi_8 = *(__v4sf *)(m + i + 8);
+            const __v4sf qi_8 = *(__v4sf *)(q + i + 8);
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const __v4sf xj = { x[j], x[j], x[j], x[j] };
+                const __v4sf yj = { y[j], y[j], y[j], y[j] };
+                const __v4sf mj = { m[j], m[j], m[j], m[j] };
+                const __v4sf qj = { q[j], q[j], q[j], q[j] };
+
+                const __v4sf dx_0 = xj - xi_0;
+                const __v4sf dy_0 = yj - yi_0;
+                const __v4sf dx_4 = xj - xi_4;
+                const __v4sf dy_4 = yj - yi_4;
+                const __v4sf dx_8 = xj - xi_8;
+                const __v4sf dy_8 = yj - yi_8;
+
+#               ifdef ACCURATE_VEC
+                const __v4sf invr_0 = vone / _mm_sqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = vone / _mm_sqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = vone / _mm_sqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               else
+                const __v4sf invr_0 = _mm_rsqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = _mm_rsqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = _mm_rsqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               endif
+                const __v4sf coef_0 = (mj - qi_0 * qj / mi_0) * invr_0 * invr_0 * invr_0;
+                const __v4sf coef_4 = (mj - qi_4 * qj / mi_4) * invr_4 * invr_4 * invr_4;
+                const __v4sf coef_8 = (mj - qi_8 * qj / mi_8) * invr_8 * invr_8 * invr_8;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax_0 += coef_0 * dx_0;
+                ay_0 += coef_0 * dy_0;
+                ax_4 += coef_4 * dx_4;
+                ay_4 += coef_4 * dy_4;
+                ax_8 += coef_8 * dx_8;
+                ay_8 += coef_8 * dy_8;
+            }
+
+            const __v4sf vxi_0 = *(__v4sf *)(vx + i + 0);
+            const __v4sf vyi_0 = *(__v4sf *)(vy + i + 0);
+            const __v4sf vxi_4 = *(__v4sf *)(vx + i + 4);
+            const __v4sf vyi_4 = *(__v4sf *)(vy + i + 4);
+            const __v4sf vxi_8 = *(__v4sf *)(vx + i + 8);
+            const __v4sf vyi_8 = *(__v4sf *)(vy + i + 8);
+
+            /* update position of particle "i" */
+            *(__v4sf *)(xn + i + 0) = xi_0 + vxi_0 * vdt + vhalf * ax_0 * vdt2;
+            *(__v4sf *)(yn + i + 0) = yi_0 + vyi_0 * vdt + vhalf * ay_0 * vdt2;
+            *(__v4sf *)(xn + i + 4) = xi_4 + vxi_4 * vdt + vhalf * ax_4 * vdt2;
+            *(__v4sf *)(yn + i + 4) = yi_4 + vyi_4 * vdt + vhalf * ay_4 * vdt2;
+            *(__v4sf *)(xn + i + 8) = xi_8 + vxi_8 * vdt + vhalf * ax_8 * vdt2;
+            *(__v4sf *)(yn + i + 8) = yi_8 + vyi_8 * vdt + vhalf * ay_8 * vdt2;
+
+            /* update velocity of particle "i" */
+            *(__v4sf *)(vx + i + 0) = vxi_0 + ax_0 * vdt;
+            *(__v4sf *)(vy + i + 0) = vyi_0 + ay_0 * vdt;
+            *(__v4sf *)(vx + i + 4) = vxi_4 + ax_4 * vdt;
+            *(__v4sf *)(vy + i + 4) = vyi_4 + ay_4 * vdt;
+            *(__v4sf *)(vx + i + 8) = vxi_8 + ax_8 * vdt;
+            *(__v4sf *)(vy + i + 8) = vyi_8 + ay_8 * vdt;
+        }
+
+        for (unsigned int i = n_particles - (n_particles % 12); i < n_particles; ++i) {
+            float ax = 0.0f;
+            float ay = 0.0f;
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const float dx = x[j] - x[i];
+                const float dy = y[j] - y[i];
+                const float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
+                const float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
+                ay += coef * dy;
+            }
+
+            /* update position of particle "i" */
+            xn[i] = x[i] + vx[i] * dt + half * ax * dt2;
+            yn[i] = y[i] + vy[i] * dt + half * ay * dt2;
+
+            /* update velocity of particle "i" */
+            vx[i] += ax * dt;
+            vy[i] += ay * dt;
+        }
+
+        if( !(*cb)(cb_arg, step) )
+            break;
+
+        std::swap(x, xn);
+        std::swap(y, yn);
+    }
+
+    return step;
+}
+
+extern "C" unsigned int
+simulator_vec_12_0_4_dynamic(
+    const simulator_conf_t* conf,
+    const simulator_data_t* data
+    )
+{
+    LOAD_CONF( conf );
+    LOAD_DATA( data );
+
+    const float half = 0.5f;
+    const float dt2 = dt * dt;
+
+#   ifdef ACCURATE_VEC
+    const __v4sf vone  = { 1.0f, 1.0f, 1.0f, 1.0f };
+#   endif
+
+    const __v4sf vhalf = { half, half, half, half };
+    const __v4sf vdt = { dt, dt, dt, dt };
+    const __v4sf vdt2 = vdt * vdt;
+
+    unsigned int step;
+    for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(dynamic) default(none) \
+            firstprivate(x, y, xn, yn)
+        for (unsigned int i = 0; i < n_particles - 11; i += 12) {
+            __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
+            __v4sf ay_0 = ax_0;
+            __v4sf ax_4 = ax_0;
+            __v4sf ay_4 = ax_0;
+            __v4sf ax_8 = ax_0;
+            __v4sf ay_8 = ax_0;
+
+            const __v4sf xi_0 = *(__v4sf *)(x + i + 0);
+            const __v4sf yi_0 = *(__v4sf *)(y + i + 0);
+            const __v4sf mi_0 = *(__v4sf *)(m + i + 0);
+            const __v4sf qi_0 = *(__v4sf *)(q + i + 0);
+
+            const __v4sf xi_4 = *(__v4sf *)(x + i + 4);
+            const __v4sf yi_4 = *(__v4sf *)(y + i + 4);
+            const __v4sf mi_4 = *(__v4sf *)(m + i + 4);
+            const __v4sf qi_4 = *(__v4sf *)(q + i + 4);
+
+            const __v4sf xi_8 = *(__v4sf *)(x + i + 8);
+            const __v4sf yi_8 = *(__v4sf *)(y + i + 8);
+            const __v4sf mi_8 = *(__v4sf *)(m + i + 8);
+            const __v4sf qi_8 = *(__v4sf *)(q + i + 8);
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const __v4sf xj = { x[j], x[j], x[j], x[j] };
+                const __v4sf yj = { y[j], y[j], y[j], y[j] };
+                const __v4sf mj = { m[j], m[j], m[j], m[j] };
+                const __v4sf qj = { q[j], q[j], q[j], q[j] };
+
+                const __v4sf dx_0 = xj - xi_0;
+                const __v4sf dy_0 = yj - yi_0;
+                const __v4sf dx_4 = xj - xi_4;
+                const __v4sf dy_4 = yj - yi_4;
+                const __v4sf dx_8 = xj - xi_8;
+                const __v4sf dy_8 = yj - yi_8;
+
+#               ifdef ACCURATE_VEC
+                const __v4sf invr_0 = vone / _mm_sqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = vone / _mm_sqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = vone / _mm_sqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               else
+                const __v4sf invr_0 = _mm_rsqrt_ps( dx_0 * dx_0 + dy_0 * dy_0 + vhalf );
+                const __v4sf invr_4 = _mm_rsqrt_ps( dx_4 * dx_4 + dy_4 * dy_4 + vhalf );
+                const __v4sf invr_8 = _mm_rsqrt_ps( dx_8 * dx_8 + dy_8 * dy_8 + vhalf );
+#               endif
+                const __v4sf coef_0 = (mj - qi_0 * qj / mi_0) * invr_0 * invr_0 * invr_0;
+                const __v4sf coef_4 = (mj - qi_4 * qj / mi_4) * invr_4 * invr_4 * invr_4;
+                const __v4sf coef_8 = (mj - qi_8 * qj / mi_8) * invr_8 * invr_8 * invr_8;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax_0 += coef_0 * dx_0;
+                ay_0 += coef_0 * dy_0;
+                ax_4 += coef_4 * dx_4;
+                ay_4 += coef_4 * dy_4;
+                ax_8 += coef_8 * dx_8;
+                ay_8 += coef_8 * dy_8;
+            }
+
+            const __v4sf vxi_0 = *(__v4sf *)(vx + i + 0);
+            const __v4sf vyi_0 = *(__v4sf *)(vy + i + 0);
+            const __v4sf vxi_4 = *(__v4sf *)(vx + i + 4);
+            const __v4sf vyi_4 = *(__v4sf *)(vy + i + 4);
+            const __v4sf vxi_8 = *(__v4sf *)(vx + i + 8);
+            const __v4sf vyi_8 = *(__v4sf *)(vy + i + 8);
+
+            /* update position of particle "i" */
+            *(__v4sf *)(xn + i + 0) = xi_0 + vxi_0 * vdt + vhalf * ax_0 * vdt2;
+            *(__v4sf *)(yn + i + 0) = yi_0 + vyi_0 * vdt + vhalf * ay_0 * vdt2;
+            *(__v4sf *)(xn + i + 4) = xi_4 + vxi_4 * vdt + vhalf * ax_4 * vdt2;
+            *(__v4sf *)(yn + i + 4) = yi_4 + vyi_4 * vdt + vhalf * ay_4 * vdt2;
+            *(__v4sf *)(xn + i + 8) = xi_8 + vxi_8 * vdt + vhalf * ax_8 * vdt2;
+            *(__v4sf *)(yn + i + 8) = yi_8 + vyi_8 * vdt + vhalf * ay_8 * vdt2;
+
+            /* update velocity of particle "i" */
+            *(__v4sf *)(vx + i + 0) = vxi_0 + ax_0 * vdt;
+            *(__v4sf *)(vy + i + 0) = vyi_0 + ay_0 * vdt;
+            *(__v4sf *)(vx + i + 4) = vxi_4 + ax_4 * vdt;
+            *(__v4sf *)(vy + i + 4) = vyi_4 + ay_4 * vdt;
+            *(__v4sf *)(vx + i + 8) = vxi_8 + ax_8 * vdt;
+            *(__v4sf *)(vy + i + 8) = vyi_8 + ay_8 * vdt;
+        }
+
+        for (unsigned int i = n_particles - (n_particles % 12); i < n_particles; ++i) {
+            float ax = 0.0f;
+            float ay = 0.0f;
+
+            for (unsigned int j = 0; j < n_particles; ++j) {
+                const float dx = x[j] - x[i];
+                const float dy = y[j] - y[i];
+                const float invr = 1.0f / std::sqrt(dx * dx + dy * dy + half);
+                const float coef = (m[j] - q[i] * q[j] / m[i]) * invr * invr * invr;
+
+                /* accumulate the acceleration from gravitational attraction */
+                ax += coef * dx;
+                ay += coef * dy;
+            }
+
+            /* update position of particle "i" */
+            xn[i] = x[i] + vx[i] * dt + half * ax * dt2;
+            yn[i] = y[i] + vy[i] * dt + half * ay * dt2;
+
+            /* update velocity of particle "i" */
+            vx[i] += ax * dt;
+            vy[i] += ay * dt;
+        }
+
+        if( !(*cb)(cb_arg, step) )
+            break;
+
+        std::swap(x, xn);
+        std::swap(y, yn);
+    }
+
+    return step;
+}
+
+extern "C" unsigned int
+simulator_vec_12_0_4_guided(
+    const simulator_conf_t* conf,
+    const simulator_data_t* data
+    )
+{
+    LOAD_CONF( conf );
+    LOAD_DATA( data );
+
+    const float half = 0.5f;
+    const float dt2 = dt * dt;
+
+#   ifdef ACCURATE_VEC
+    const __v4sf vone  = { 1.0f, 1.0f, 1.0f, 1.0f };
+#   endif
+
+    const __v4sf vhalf = { half, half, half, half };
+    const __v4sf vdt = { dt, dt, dt, dt };
+    const __v4sf vdt2 = vdt * vdt;
+
+    unsigned int step;
+    for (step = 0; step < n_steps; ++step) {
+#       pragma omp parallel for schedule(guided) default(none) \
             firstprivate(x, y, xn, yn)
         for (unsigned int i = 0; i < n_particles - 11; i += 12) {
             __v4sf ax_0 = { 0.0f, 0.0f, 0.0f, 0.0f };
