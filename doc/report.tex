@@ -115,7 +115,7 @@ Poslední tři uvedené rovnice tvoří teoretický základ našeho algoritmu.
 \subsection{Sekvenční algoritmus}
 
 \begin{lstlisting}
-for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
+for (step = 0; step < s.n_steps; ++step) {
     for (unsigned int i = 0; i < s.n_particles; ++i) {
         float ax = 0.0f;
         float ay = 0.0f;
@@ -143,11 +143,11 @@ se víceméně o přímý přepis matematických rovnic uvedených výše až na
 implementačních detailů.
 
 Na řádku 9 si můžete všimnout, že před výpočtem odmocniny je k vstupní
-hodnotě připočtena konstanta $ 0.5 $. Jedná se o protiopatření pro případ,
-že $ i = j $; bez konstanty bychom se snažili odmocnit nulu a následující
-dělení by selhalo pro dělení nulou. Nepřesnost zanesená touto konstantou
-je zanedbatelná a jedná se výkonnostně o lepší řešení než tento případ
-explicitně ošetřovat.
+hodnotě připočtena konstanta \texttt{0.5f}. Jedná se o protiopatření
+pro případ, že $ i = j $; bez konstanty bychom se snažili odmocnit
+nulu a následující dělení by selhalo pro dělení nulou. Nepřesnost
+zanesená touto konstantou je zanedbatelná a jedná se výkonnostně o
+lepší řešení než tento případ explicitně ošetřovat.
 
 Na 10. řádku je zase zřejmé, že raději než třikrát dělit vzdáleností částic
 je lepší si spočítat její převrácenou hodnotu a tou třikrát násobit. Výhodnost
@@ -157,58 +157,144 @@ násobení.
 Poslední věcí stojící za zmínku je časová složitost algoritmu, která
 je z výpisu kódu zcela zjevně $ O(n^2) $.
 
+\vspace{10pt}
 \section{Optimalizovaná verze}
 
-Hlavní provedenou optimalizací bylo čtyřnásobné rozbalení smyčky cyklící přes
-proměnnou \texttt{i} a následná vektorizace. Proměnné \texttt{ax}, \texttt{ay},
-\texttt{dx}, \texttt{dy}, \texttt{invr} a \texttt{coef} byly modifikovány na
-vektorové proměnné, přístup do polí \texttt{x}, \texttt{y}, \texttt{xn},
-\texttt{yn}, \texttt{m}, \texttt{q}, \texttt{vx} a \texttt{vy} byl též
-vektorizován. Pro výpočet odmocniny byla ručně použita SSE instrukce
-\texttt{rsqrtps}.
-
-Také jsme zjistili, že volba optimalizací \texttt{-Ofast} zvyšuje oproti
-\texttt{-O3} výkon obou verzí algoritmu, avšak zejména té neoptimalizované.
-Podrobné výsledky viz níže.
+\subsection{Shrnutí}
+V krátkosti můžeme říci, že nejvýraznějšího navýšení výkonu jsme
+dosáhli rozbalením \texttt{i}-cyklu, ruční vektorizací a použitím
+kompilační volby \texttt{-Ofast}. Následují grafy dosažené výkonnosti
+a detailní popis jednotlivých vyzkoušených optimalizačních technik.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.91\textwidth]{graph_ofast.eps}
-    %%\caption{}
+    \includegraphics[width=0.9\textwidth]{graph_o3.eps}
     \label{fig:1}
 \end{figure}
 
-Z měření je dále vidět, že ani pro nejvyšší měřitelné $ n = 440000 $, kdy doba
-běhu naivní verze již atakovala limitních 60 minut, nedochází k žádnému
-viditelnému zpomalení z důvodu výpadků cache. Dalo by se tedy předpokládat,
-že loop tiling nepřinese žádné zrychlení $ - $ což se také na naší
-experimentální verzi potvrdilo $ - $ verze s loop tilingem byla vždy méně
-výkonná, a proto jsme se rozhodli se jí nijak dále nezabývat.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{graph_ofast.eps}
+    \label{fig:2}
+\end{figure}
 
-\section{Paralelizovaná verze}
-
-Po počáteční úvaze jsme se rozhodli paralelizovat pouze smyčku cyklící
-přes proměnnou \texttt{i}, vzhledem k jednoduché predikci chování
-paralelizovaného algoritmu a primitivnímu plánování práce na vlákna, tj.
-minimální režii. Každá iterace představuje stejný díl práce a jednotlivé
-iterace tohoto cyklu mohou běžet plně paralelně bez jakýchkoliv nároků na
-synchronizaci (pokud bychom paralelizovali i cyklus proměnné \texttt{j},
-bylo by nutné synchronizovat proměnné \texttt{ax} a \texttt{ay}).
-
+\subsection{Loop tiling}
 \begin{lstlisting}
-for (step = 0; step < s.n_steps && !g_interrupted; ++step) {
-#   pragma omp parallel for schedule(static) default(none) \
-        firstprivate(x, y, xn, yn, vx, vy, m, q) shared(s)
-    for (unsigned int i = 0; i < s.n_particles - 3; i += 4) {
+for (unsigned int i = 0; i < s.n_particles; i += TILED_STEP) {
+    unsigned int i1_end = std::min(i + TILED_STEP, s.n_particles);
+    for (unsigned int j = 0; j < s.n_particles; j += TILED_STEP) {
+        unsigned int j1_end = std::min(j + TILED_STEP, s.n_particles);
+        for (unsigned int i1 = i; i1 < i1_end; ++i1) {
+            float ax = 0.0f;
+            float ay = 0.0f;
+            for (unsigned int j1 = j; j1 < j1_end; ++j1) {
+                float dx = x[j1] - x[i1];
 \end{lstlisting}
 
-Direktiva odpovídá charakteristice popsané v předchozím odstavci, využíváme
-statického plánování práce a drtivá většina proměnných je privátních. Jedná
-se totiž o ukazatele, které nejsou v cyklu měněny a je z nich buď pouze čteno
-a nebo pouze zapisováno na disjuktní paměťová místa. Jedinou výjimkou je
-proměnná \texttt{s}, která je typu reference na třídu a jako taková nemůže
-být privátní. Naštěstí je používána pouze pro kontrolu okrajových podmínek
-smyček proměnných \texttt{i} a \texttt{j}.
+Úplně první optimalizační technikou co jsme vyzkoušeli byl loop
+tiling. Pro konstantu \texttt{TILED\_STEP} jsme použili mnoho hodnot,
+avšak shledali jsme, že použití hodnot vyšších než $ 1 $ vesměs výkon
+snižuje. Toto pozorování je konzistentí s měřením naivní verze, ve
+které jsme nezaznamenali žádný pokles výkonu s rostoucím $ n $
+(tj. připsatelný snížené efektivitě cache; nejvyšší dosažená hodnota
+byla $ n = 440000 $, pro vyšší již výpočetní čas přesahoval limitních
+60 minut). Došli jsme tedy k závěru, že loop tiling je v našem případě
+bezcenný a proto se ani nenachází ve výsledných grafech.
+
+\vspace{10pt}
+\subsection{Rozbalení cyklů}
+\begin{lstlisting}
+for (unsigned int i = 0; i < n_particles - 1; i += 2) {
+    float ax_0 = 0.0f;
+    float ax_1 = 0.0f;
+    float ay_0 = 0.0f;
+    float ay_1 = 0.0f;
+    for (unsigned int j = 0; j < n_particles; ++j) {
+        float dx_0 = x[j] - x[i + 0];
+        float dx_1 = x[j] - x[i + 1];
+\end{lstlisting}
+
+\begin{lstlisting}
+for (unsigned int i = 0; i < n_particles; ++i) {
+    float ax = 0.0f;
+    float ay = 0.0f;
+    for (unsigned int j = 0; j < n_particles - 1; j += 2) {
+        float dx_0 = x[j + 0] - x[i];
+        float dx_1 = x[j + 1] - x[i];
+\end{lstlisting}
+
+Zkoušeli jsme rozbalit jak \texttt{i}-cyklus, tak \texttt{j}-cyklus, a
+to jak samostatně každý po 2, 4 a 8 krocích, tak i oba společně s
+krokem 2. Zde jsme se dočkali příjemného překvapení, neboť společně s
+volbou \texttt{-Ofast} zde došlo -- zejména po rozbalení
+\texttt{i}-cyklu -- k výraznému nárustu výkonu; kompilátor zde zřejmě
+již dokázal části cyklu automaticky vektorizovat. Rozbalení
+\texttt{j}-cyklu ani obou cyklů společně však žádný výraznější nárust
+výkonu nepřineslo.
+
+\vspace{10pt}
+\subsection{Vektorizace}
+\begin{lstlisting}
+for (unsigned int i = 0; i < n_particles - 3; i += 4) {
+    __v4sf ax = { 0.0f, 0.0f, 0.0f, 0.0f };
+    __v4sf ay = ax;
+    const __v4sf xi = *(__v4sf *)(x + i);
+    const __v4sf yi = *(__v4sf *)(y + i);
+    const __v4sf mi = *(__v4sf *)(m + i);
+    const __v4sf qi = *(__v4sf *)(q + i);
+    for (unsigned int j = 0; j < n_particles; ++j) {
+        const __v4sf xj = { x[j], x[j], x[j], x[j] };
+        const __v4sf yj = { y[j], y[j], y[j], y[j] };
+        const __v4sf mj = { m[j], m[j], m[j], m[j] };
+        const __v4sf qj = { q[j], q[j], q[j], q[j] };
+        const __v4sf dx = xj - xi;
+        const __v4sf dy = yj - yi;
+\end{lstlisting}
+
+Pro vektorizaci jsme použili datový typ \texttt{\_\_v4sf} reprezentující
+4 čísla s plovoucí desetinnou čárkou v jednoduché přesnosti. Tato optimalizace
+přinesla s kompilační volbou \texttt{-O3} velmi podstatný nárust výkonu; verze
+uvedená výše je pro tuto volbu nejvýkonnější (dosahuje cca. 3.5 GFLOPS, zatímco
+naivní verze cca. 1.1 GFLOPS).
+
+Pro volbu \texttt{-Ofast} je situace ještě o něco zajímavější, neboť
+2-krát rozbalený a automaticky vektorizovaný \texttt{i}-cyklus má
+srovnatelný výkon s kódem výše. Zašli jsme tedy ještě dál a ručně
+vektorizovaný \texttt{i}-cyklus jsme rozbalili po 2, 3 a 4 krocích. To
+zapříčinilo další růst výkonu a jako nejvýkonnější se kupodivu ukázala
+být verze s 3-krát rozbaleným ručně vektorizovaným \texttt{i}-cyklem,
+která dosahuje cca. 11 GFLOPS (naivní verze cca. 1.45 GFLOPS).
+
+\vspace{10pt}
+\section{Paralelizovaná verze}
+
+\subsection{Naivní paralelizace}
+Vzhledem k výsledkům dosaženým během optimalizace sekvenční verze
+algoritmu jsme se rozhodli nejprve paralelizovat \texttt{i}-cyklus
+se statickým plánováním a bez sdílených proměnných.
+
+\begin{lstlisting}
+for (step = 0; step < n_steps; ++step) {
+#   pragma omp parallel for schedule(static) default(none) \
+        firstprivate(x, y, xn, yn)
+    for (unsigned int i = 0; i < n_particles; ++i) {
+\end{lstlisting}
+
+Přestože se jednalo o naivní přístup, takto paralelizovaná verze nejvýkonnějšího
+sekvenčního algoritmu dosáhla téměř lineárních zrychlení (při 12 vláknech dosahuje
+cca. 125 GFLOPS, zatímco sekvenční verze 11 GFLOPS). Grafy viz níže.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{graph_o3par.eps}
+    \label{fig:1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{graph_ofastpar.eps}
+    \label{fig:2}
+\end{figure}
 
 \section{Závěr}
 
