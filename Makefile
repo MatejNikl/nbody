@@ -51,7 +51,7 @@ test: $(BIN)
 	diff -u $(REF_OUT) $(TEST_OUT)
 
 showsims: $(BIN)
-	@readelf -s $(BIN) | sed -n 's/.*\ssimulator_\(\w\+\)$$/\1/p' | sort -u
+	@readelf -sW $(BIN) | sed -n 's/.*\ssimulator_\(\w\+\)$$/\1/p' | sort -u
 
 doc:
 	make -C $(DOC)
