@@ -9,7 +9,7 @@ set key box width 1 height 1
 set xlabel "Number of particles"
 #set xrange[0:1400000]
 set yrange[0:150]
-set ytics 25
+set ytics 10
 set ylabel "Performance [GFLOPS]"
 set grid ytics
 
