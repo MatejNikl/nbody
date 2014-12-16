@@ -5,6 +5,7 @@ CXXFLAGS := -O3 -g3 -std=c++11 -pedantic -Wall -Wextra -march=native -mtune=nati
 CXXFLAGS += -rdynamic -ldl -fopenmp -DACCURATE_VEC
 
 BUILD    := build
+DOC      := doc
 SRC      := src
 
 SRCS     := $(sort $(wildcard $(SRC)/*.cpp))
@@ -24,7 +25,7 @@ DEPS     := $(OBJS:.o=.d) $(VOBJS:.o=.d)
 
 # first target is the default one and it should be something reasonable,
 # not the one from included dependencies
-all: $(BIN)
+all: $(BIN) doc
 
 # include compiler-generated dependencies, so obj files get recompiled when
 # included headers change
@@ -52,4 +53,7 @@ test: $(BIN)
 showsims: $(BIN)
 	@readelf -s $(BIN) | sed -n 's/.*\ssimulator_\(\w\+\)$$/\1/p' | sort -u
 
-.PHONY: all clean run test showsims
+doc:
+	make -C $(DOC)
+
+.PHONY: all clean run test showsims doc
