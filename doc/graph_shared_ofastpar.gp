@@ -1,7 +1,7 @@
 set terminal postscript eps enhanced color
 set output "graph_shared_ofastpar.eps"
 
-set title "12 threads, -Ofast, non-exact computation"
+set title "12 threads, -Ofast, non-exact computation, shared variables comparison"
 
 set key bottom right
 set key box width 1 height 1
