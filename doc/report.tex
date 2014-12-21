@@ -157,7 +157,7 @@ násobení.
 Poslední věcí stojící za zmínku je časová složitost algoritmu, která
 je z výpisu kódu zcela zjevně $ O(n^2) $.
 
-\vspace{10pt}
+\pagebreak
 \section{Optimalizovaná verze}
 
 \subsection{Shrnutí}
@@ -166,13 +166,13 @@ dosáhli rozbalením \texttt{i}-cyklu, ruční vektorizací a použitím
 kompilační volby \texttt{-Ofast}. Následují grafy dosažené výkonnosti
 a detailní popis jednotlivých vyzkoušených optimalizačních technik.
 
-\begin{figure}[h]
+\begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\textwidth]{graph_o3.eps}
     \label{fig:1}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\textwidth]{graph_ofast.eps}
     \label{fig:2}
@@ -254,8 +254,8 @@ for (unsigned int i = 0; i < n_particles - 3; i += 4) {
 Pro vektorizaci jsme použili datový typ \texttt{\_\_v4sf} reprezentující
 4 čísla s plovoucí desetinnou čárkou v jednoduché přesnosti. Tato optimalizace
 přinesla s kompilační volbou \texttt{-O3} velmi podstatný nárust výkonu; verze
-uvedená výše je pro tuto volbu nejvýkonnější (dosahuje cca. 3.5 GFLOPS, zatímco
-naivní verze cca. 1.1 GFLOPS).
+uvedená výše je pro tuto volbu nejvýkonnější (dosahuje cca. 3,5 GFLOPS, zatímco
+naivní verze cca. 1,1 GFLOPS).
 
 Pro volbu \texttt{-Ofast} je situace ještě o něco zajímavější, neboť
 2-krát rozbalený a automaticky vektorizovaný \texttt{i}-cyklus má
@@ -263,16 +263,71 @@ srovnatelný výkon s kódem výše. Zašli jsme tedy ještě dál a ručně
 vektorizovaný \texttt{i}-cyklus jsme rozbalili po 2, 3 a 4 krocích. To
 zapříčinilo další růst výkonu a jako nejvýkonnější se kupodivu ukázala
 být verze s 3-krát rozbaleným ručně vektorizovaným \texttt{i}-cyklem,
-která dosahuje cca. 11 GFLOPS (naivní verze cca. 1.45 GFLOPS).
+která dosahuje cca. 11 GFLOPS (naivní verze cca. 1,45 GFLOPS).
 
-\vspace{10pt}
+\pagebreak
 \section{Paralelizovaná verze}
 
-\subsection{Naivní paralelizace}
-Vzhledem k výsledkům dosaženým během optimalizace sekvenční verze
-algoritmu jsme se rozhodli nejprve paralelizovat \texttt{i}-cyklus
-se statickým plánováním a bez sdílených proměnných.
+\subsection{Shrnutí}
+Z dosažených výsledků je zřejmé, že úloha je velmi vhodná pro
+paralelizaci.  Vyzkoušeli jsme několik variant, jak výpočet
+paralelizovat, ale rozdíly ve výkonnosti byly zanedbatelné (viz graf
+níže). Další informace a grafy týkající se nejvhodnějšího způsobu
+paralelizace lze nalézt na konci této sekce.
 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{graph_paropts_ofastpar.eps}
+    \label{fig:3}
+\end{figure}
+
+\subsection{Varianty plánování}
+\begin{lstlisting}
+for (step = 0; step < n_steps; ++step) {
+#   pragma omp parallel for schedule(dynamic) default(none) \
+        firstprivate(x, y, xn, yn)
+    for (unsigned int i = 0; i < n_particles; ++i) {
+\end{lstlisting}
+
+Nejprve jsme zkoušeli varianty plánování (\texttt{static},
+\texttt{dynamic} a \texttt{guided}) pro nejvýkonnější sekvenční
+řešení. Z grafu je zřejmé, že zvolená varianta plánování nemá valný
+vliv na výkonnost, což odpovídá faktu, že každá iterace
+\texttt{i}-cyklu představuj stejný díl práce. Dále jsme uvažovali
+pouze statické plánování.
+
+\vspace{10pt}
+\subsection{Sdílení proměnných}
+\begin{lstlisting}
+for (step = 0; step < n_steps; ++step) {
+#   pragma omp parallel for schedule(static)
+    for (unsigned int i = 0; i < n_particles; ++i) {
+\end{lstlisting}
+
+V tomto testu jsme zkusili odstranit direktivu pro nesdílení
+ukazatelových proměnných mezi vlákny, abychom zjistili její
+vliv na výkon. Z grafu ale vyplývá, že není valný, což odpovídá
+očekáváním; do těchto proměnných není nikdy zapisováno přímo, používají
+se pouze k přístupu do (mezi vlákny disjunktní) paměti.
+
+\vspace{10pt}
+\subsection{Paralelizace obou cyklů}
+\begin{lstlisting}
+#pragma omp parallel for schedule(static) default(none) \
+    firstprivate(i, x, y, xn, yn) reduction(+:ax_0,ax_1,ay_0,ay_1)
+    for (unsigned int j = 0; j < n_particles; ++j) {
+\end{lstlisting}
+
+Pro paralelizaci \texttt{j}-cyklu jsme byli nuceni využít
+nevektorizovanou verzi algoritmu, neboť povaha výpočtu vyžaduje, aby
+na akumulační proměnné zrychlení částic byla aplikována redukce, avšak
+tato funkcionalita funguje pouze na standardní datové typy (tj. ne na
+vektory). Využili jsme nejvýkonnější verzi rozbalení \texttt{j}-cyklu
+(krok 2). Dopad na výkonnost je spíše negativní, zarazil nás však náhlý
+propad výkonu verze bez paralelizace \texttt{j}-cyklu.
+
+\vspace{10pt}
+\subsection{Nejvhodnější způsob paralelizace}
 \begin{lstlisting}
 for (step = 0; step < n_steps; ++step) {
 #   pragma omp parallel for schedule(static) default(none) \
@@ -280,23 +335,51 @@ for (step = 0; step < n_steps; ++step) {
     for (unsigned int i = 0; i < n_particles; ++i) {
 \end{lstlisting}
 
-Přestože se jednalo o naivní přístup, takto paralelizovaná verze nejvýkonnějšího
-sekvenčního algoritmu dosáhla téměř lineárních zrychlení (při 12 vláknech dosahuje
-cca. 125 GFLOPS, zatímco sekvenční verze 11 GFLOPS). Grafy viz níže.
+Nejvhodnějším způsobem paralelizace jsme shledali verzi se statickým
+plánováním bez sdílených proměnných a paralelizace \texttt{j}-cyklu.
+Takto paralelizovaný nejvýkonnější sekvenční algoritmus jsme podrobili
+testu zrychlení s různými počty vláken. Graf má velmi příjemný lineární
+průběh až do plných 12 vláken.
 
-\begin{figure}[h]
+\begin{figure}[h!]
     \centering
-    \includegraphics[width=0.9\textwidth]{graph_o3par.eps}
-    \label{fig:1}
+    \includegraphics[width=0.9\textwidth]{graph_threads_ofastpar.eps}
+    \label{fig:4}
 \end{figure}
 
-\begin{figure}[h]
+Na závěr jsme se rozhodli změřit výkonnost všech sekvenčních
+simulátorů paralelizovaných tímto způsobem. Z grafu vyplývá téměř
+lineární zrychlení všech vektorizovaných algoritmů. Zarážející je
+významné zpomalení některých simulátorů s rostoucím $ n $, zatímco
+jiné toto zpomalení nedemonstrují. Nejvýkonnější je opět 3-krát
+rozbalená vektorizovaná verze, která při 12 vláknech dosahuje
+cca. 125~GFLOPS (oproti sekvenční verzi s cca. 11~GFLOPS).
+
+\begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\textwidth]{graph_ofastpar.eps}
-    \label{fig:2}
+    \label{fig:5}
 \end{figure}
 
+\pagebreak
 \section{Závěr}
+V této práci jsme implementovali řadu simulátorů pro pohyb částic v 2D
+prostoru. Během implementace jsme došli k poznání, že charakter výpočtu
+je velmi vhodný jak pro vektorizaci, tak pro paralelizaci.
+
+Naivní verze algoritmu s aktivovanou volbou \texttt{-Ofast} dosahovala
+výsledku cca. 1,45 GFLOPS. Tento údaj jsme brali jako základní pro další
+porovnávání výkonnosti.
+
+Jako nejlépe optimalizovaná verze se ukázala být ručně vektorizovaná
+verze s 3-krát rozbaleným \texttt{i}-cyklem. Tento způsob výpočtu
+dosáhl s \texttt{-Ofast} v jednom vláknu cca. 11 GFLOPS, což je téměř
+8-násobné zrychlení oproti naivní verzi.
+
+Po vyzkoušení několika způsobů paralelizace jsme zjistili, že nejvyšší
+výkon má opět vektorizovaná verze s 3-násobným \texttt{i}-cyklem, dosahující
+125 GFLOPS ve 12 vláknech (cca. 11,5-násobné zrychlení oproti sekvenční verzi
+a cca. 86-násobné zrychlení oproti naivní verzi).
 
 \end{document}
 
